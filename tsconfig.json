@@ -1,0 +1,42 @@
+﻿{
+    "compilerOptions":
+    {
+        "strict": true,
+        "alwaysStrict": true,
+        "skipLibCheck": true,
+
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        "strictPropertyInitialization": true,
+        "strictBindCallApply": true,
+
+        "noUnusedLocals": true,
+        "noEmitOnError": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "noErrorTruncation": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "noUnusedParameters": true,
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false,
+        //"noUncheckedIndexedAccess": true,
+
+        "diagnostics": false,
+        "extendedDiagnostics": false,
+        "incremental": true,
+        "allowJs": false,
+        "removeComments": true,
+        "sourceMap": true,
+        "target": "es5",
+        "outDir": "./script",
+        "outFile": "./script/MLv0.js",
+        "module": "System"
+    },
+    "exclude":
+    [
+        "node_modules",
+        "wwwroot"
+    ]
+}
