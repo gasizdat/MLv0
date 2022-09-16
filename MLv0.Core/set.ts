@@ -8,9 +8,14 @@ module MLv0.Core
 
     export class Set<T>
     {
-        constructor(size: number)
+        constructor(elements: T[])
         {
-            this._data = new Array<T>(size);
+            this._data = elements;
+        }
+
+        public get length(): number
+        {
+            return this._data.length;
         }
 
         public getSubset(indices: number[]): Subset<T>
@@ -23,7 +28,7 @@ module MLv0.Core
 
         public getSubset1(index: number): Subset1<T>
         {
-            assert(0 <= index && this._data.length < index);
+            this.checkIndex(index);
 
             return new Subset1<T>(this, index);
         }
@@ -44,8 +49,7 @@ module MLv0.Core
 
         protected checkIndex(index: number): void
         {
-            assert(index >= 0);
-            assert(index < this._data.length);
+            assert(0 <= index && index < this._data.length);
         }
 
         private _data: T[];
