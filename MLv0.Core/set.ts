@@ -1,21 +1,31 @@
-﻿/// <reference path="datasubset.ts" />
+﻿/// <reference path="subset.ts" />
+/// <reference path="subset1.ts" />
 /// <reference path="../MLv0.Utils/assert.ts" />
 
 module MLv0.Core
 {
-    export class DataSet<T>
+    import assert = MLv0.Utils.assert;
+
+    export class Set<T>
     {
         constructor(size: number)
         {
             this._data = new Array<T>(size);
         }
 
-        public getSubset(indices: number[]): DataSubset<T>
+        public getSubset(indices: number[]): Subset<T>
         {
-            var $this = this;
+            const $this = this;
             indices.forEach(index => $this.checkIndex(index));
 
-            return new DataSubset<T>(this, indices);
+            return new Subset<T>(this, indices);
+        }
+
+        public getSubset1(index: number): Subset1<T>
+        {
+            assert(0 <= index && this._data.length < index);
+
+            return new Subset1<T>(this, index);
         }
 
         public get(index: number): T
@@ -34,8 +44,8 @@ module MLv0.Core
 
         protected checkIndex(index: number): void
         {
-            MLv0.Utils.assert(index >= 0);
-            MLv0.Utils.assert(index < this._data.length);
+            assert(index >= 0);
+            assert(index < this._data.length);
         }
 
         private _data: T[];
