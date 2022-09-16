@@ -68,9 +68,13 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="MLv0.Core\subset1.ts" />
+    <TypeScriptCompile Include="MLv0.Net\connectom.ts" />
+    <TypeScriptCompile Include="MLv0.Net\layer.ts" />
+    <TypeScriptCompile Include="MLv0.Net\types.ts" />
     <TypeScriptCompile Include="MLv0.Utils\assert.ts" />
-    <TypeScriptCompile Include="MLv0.Core\dataset.ts" />
-    <TypeScriptCompile Include="MLv0.Core\datasubset.ts" />
+    <TypeScriptCompile Include="MLv0.Core\set.ts" />
+    <TypeScriptCompile Include="MLv0.Core\subset.ts" />
     <TypeScriptCompile Include="main.ts" />
     <TypeScriptCompile Include="MLv0.Core\ievaluatable.ts" />
     <TypeScriptCompile Include="MLv0.Net\perceptron.ts" />
