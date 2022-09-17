@@ -48,6 +48,7 @@
     <TypeScriptSourceRoot />
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="index.html" />
     <Content Include="tsconfig.json" />
     <None Include="packages.config" />
     <None Include="Web.Debug.config">
@@ -68,10 +69,14 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="MLv0.Core\sigma.ts" />
+    <TypeScriptCompile Include="MLv0.Core\iset.ts" />
+    <TypeScriptCompile Include="MLv0.Core\heaviside.ts" />
     <TypeScriptCompile Include="MLv0.Core\subset1.ts" />
     <TypeScriptCompile Include="MLv0.Net\connectom.ts" />
     <TypeScriptCompile Include="MLv0.Net\layer.ts" />
     <TypeScriptCompile Include="MLv0.Net\types.ts" />
+    <TypeScriptCompile Include="MLv0.Utils\ensure.ts" />
     <TypeScriptCompile Include="MLv0.Utils\range.ts" />
     <TypeScriptCompile Include="MLv0.Utils\deduplicate.ts" />
     <TypeScriptCompile Include="MLv0.Utils\assert.ts" />

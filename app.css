@@ -8,11 +8,11 @@ span {
 
 .playArea {
     touch-action: none;
-    background: #4FA7FF;
+    /*background: #4FA7FF;
     color: lightGreen;
-    /*border: solid green;*/
+    border: solid green;*/
     padding: 0px;
     margin: 0px;
-    width: 100%;
-    height: 100%;
+    /*width: 100%;
+    height: 100%;*/
 }
