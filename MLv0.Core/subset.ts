@@ -1,5 +1,7 @@
 ﻿/// <reference path="set.ts" />
 /// <reference path="../MLv0.Utils/assert.ts" />
+/// <reference path="../MLv0.Utils/deduplicate.ts" />
+
 
 module MLv0.Core
 {
@@ -87,7 +89,7 @@ module MLv0.Core
                 }
             });
 
-            return new Subset<T>(set, indices);
+            return new Subset<T>(set, Utils.deduplicate(indices));
         }
 
         protected getGlobalIndex(index: number): number
