@@ -10,10 +10,11 @@ module MLv0.Net
     type Output = MLv0.Core.Subset1<SignalType>;
     type Weights = MLv0.Core.Subset<WeightType>;
     type Biases = MLv0.Core.Subset1<BiasType>;
+    type TransferFunction = (value: number) => number;
 
     export class Perceptron implements MLv0.Core.IEvaluatable
     {
-        constructor(inputs: Inputs, output: Output, weights: Weights, bias: Biases)
+        constructor(inputs: Inputs, output: Output, weights: Weights, bias: Biases, func: TransferFunction)
         {
             assert(inputs.length == weights.length);
 
@@ -21,6 +22,7 @@ module MLv0.Net
             this._output = output;
             this._weights = weights;
             this._bias = bias;
+            this._func = func;
         }
 
         public evaluate(): void
@@ -29,12 +31,12 @@ module MLv0.Net
             const weights = this._weights;
             this._inputs.forEachIndex((item, index) => sum += item * weights.get(index));
 
-            this._output.value = (sum >= 0) ? 1.0 : 0.0;
+            this._output.value = this._func(sum);
         }
 
         public get inputs(): Inputs
         {
-            return this.inputs;
+            return this._inputs;
         }
 
         public get output(): Output
@@ -42,6 +44,7 @@ module MLv0.Net
             return this._output;
         }
 
+        private readonly _func: TransferFunction;
         private readonly _inputs: Inputs;
         private readonly _output: Output;
         private readonly _weights: Weights;
