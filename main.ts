@@ -3,7 +3,7 @@
 function main()
 {
     console.log("Hello world");
-    const connectom = new MLv0.Net.Connectom(4,4,2);
+    const connectom = new MLv0.Net.Connectom(64*64, 100, 31, 10);
     connectom.evaluate();
 }
 

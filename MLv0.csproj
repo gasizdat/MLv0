@@ -72,6 +72,8 @@
     <TypeScriptCompile Include="MLv0.Net\connectom.ts" />
     <TypeScriptCompile Include="MLv0.Net\layer.ts" />
     <TypeScriptCompile Include="MLv0.Net\types.ts" />
+    <TypeScriptCompile Include="MLv0.Utils\range.ts" />
+    <TypeScriptCompile Include="MLv0.Utils\deduplicate.ts" />
     <TypeScriptCompile Include="MLv0.Utils\assert.ts" />
     <TypeScriptCompile Include="MLv0.Core\set.ts" />
     <TypeScriptCompile Include="MLv0.Core\subset.ts" />

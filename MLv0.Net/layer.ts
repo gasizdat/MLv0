@@ -9,6 +9,7 @@ module MLv0.Net
     import assert = MLv0.Utils.assert;
 
     type Perceptrons = MLv0.Core.Subset<Perceptron>;
+    type Inputs = MLv0.Core.Subset<SignalType>;
     type Outputs = MLv0.Core.Subset<SignalType>;
 
     export class Layer implements MLv0.Core.IEvaluatable
@@ -23,6 +24,13 @@ module MLv0.Net
         public evaluate(): void
         {
             this._perceptrons.forEach(perceptron => perceptron.evaluate());
+        }
+
+        public get inputs(): Inputs
+        {
+            const inputs = new Array<MLv0.Core.Subset<SignalType>>();
+            this._perceptrons.forEach(perceptron => inputs.push(perceptron.inputs));
+            return MLv0.Core.Subset.join<SignalType>(inputs);
         }
 
         public get outputs(): Outputs
