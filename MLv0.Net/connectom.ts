@@ -20,7 +20,7 @@ module MLv0.Net
             {
                 weight_count += population[l - 1] * population[l];
             }
-            const signal_count = perceptron_count + population[0] + population[population.length - 1]
+            const signal_count = perceptron_count + population[0];
             const perceptrons = new Array<MLv0.Net.Perceptron>();
             const layers = new Array<MLv0.Net.Layer>();
             this._signals = new MLv0.Core.Set<MLv0.Net.SignalType>(new Array<MLv0.Net.SignalType>(signal_count));
