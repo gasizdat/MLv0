@@ -6,7 +6,7 @@ module MLv0.Core
 {
     import assert = MLv0.Utils.assert;
 
-    export class Set<T>
+    export class Set<T> implements ISet<T>
     {
         constructor(elements: T[])
         {
@@ -45,6 +45,14 @@ module MLv0.Core
             this.checkIndex(index);
 
             this._data[index] = value;
+        }
+
+        public setAll(value: T): void
+        {
+            for (var i = 0; i < this._data.length; i++)
+            {
+                this._data[i] = value;
+            }
         }
 
         protected checkIndex(index: number): void

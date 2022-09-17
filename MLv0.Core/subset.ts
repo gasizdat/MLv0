@@ -9,7 +9,7 @@ module MLv0.Core
 
     type AnySubset<T> = Subset<T> | Subset1<T>;
 
-    export class Subset<T>
+    export class Subset<T> implements ISet<T>
     {
         constructor(set: Set<T>, indices: number[])
         {
@@ -64,8 +64,6 @@ module MLv0.Core
 
         public getSubset1(index: number): Subset1<T>
         {
-            assert(0 <= index && this.length < index);
-
             return new Subset1<T>(this._set, this.getGlobalIndex(index));
         }
 
