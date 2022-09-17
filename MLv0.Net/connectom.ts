@@ -4,6 +4,7 @@
 /// <reference path="../MLv0.Core/ievaluatable.ts" />
 /// <reference path="../MLv0.Core/set.ts" />
 /// <reference path="../MLv0.Utils/assert.ts" />
+/// <reference path="../MLv0.Utils/range.ts" />
 
 module MLv0.Net
 {
@@ -27,16 +28,16 @@ module MLv0.Net
             this._biases = new MLv0.Core.Set<MLv0.Net.BiasType>(new Array<MLv0.Net.BiasType>(perceptron_count));
             this._weights = new MLv0.Core.Set<MLv0.Net.WeightType>(new Array<MLv0.Net.BiasType>(weight_count));
 
-            var l = 0, j = 0, s = 0;
+            var l = 0, w = 0, s: number;
             {
                 const layer_0 = population[l];
-                for (var k = 0, s = layer_0; k < layer_0; k++, j++, s++)
+                for (var k = 0, s = layer_0; k < layer_0; k++, w++, s++)
                 {
                     perceptrons.push(
                         new MLv0.Net.Perceptron(
-                            this._signals.getSubset([j]),
+                            this._signals.getSubset([s - layer_0]),
                             this._signals.getSubset1(s),
-                            this._weights.getSubset([j]),
+                            this._weights.getSubset([w]),
                             this._biases.getSubset1(perceptrons.length)
                         )
                     );
@@ -48,15 +49,15 @@ module MLv0.Net
             {
                 const layer_n_minus_1 = population[l - 1];
                 const layer_n = population[l];
-                const inputs = this._signals.getSubset(Connectom.range(s - layer_n_minus_1, layer_n_minus_1));
+                const inputs = this._signals.getSubset(Utils.range(s - layer_n_minus_1, layer_n_minus_1));
 
-                for (var k = 0; k < layer_n; k++, j += layer_n_minus_1, s++)
+                for (var k = 0; k < layer_n; k++, w += layer_n_minus_1, s++)
                 {
                     perceptrons.push(
                         new MLv0.Net.Perceptron(
                             inputs,
                             this._signals.getSubset1(s),
-                            this._weights.getSubset(Connectom.range(j, layer_n_minus_1)),
+                            this._weights.getSubset(Utils.range(w, layer_n_minus_1)),
                             this._biases.getSubset1(perceptrons.length)
                         )
                     );
@@ -68,7 +69,7 @@ module MLv0.Net
             var start = 0;
             for (var count of population)
             {
-                layers.push(new MLv0.Net.Layer(this._perceptrons.getSubset(Connectom.range(start, count))));
+                layers.push(new MLv0.Net.Layer(this._perceptrons.getSubset(Utils.range(start, count))));
                 start += count;
             }
             this._layers = new MLv0.Core.Set<MLv0.Net.Layer>(layers);
@@ -80,11 +81,6 @@ module MLv0.Net
             {
                 this._layers.get(i).evaluate();
             }
-        }
-
-        static range(start: number, count: number): number[]
-        {
-            return Array.from({ length: count }, (_, i) => i + start);
         }
 
         private readonly _signals: MLv0.Core.Set<MLv0.Net.SignalType>;
