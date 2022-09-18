@@ -4,7 +4,7 @@
 
 class Model implements MLv0.Core.IEvaluatable
 {
-    constructor(canvas: HTMLCanvasElement)
+    constructor(canvas: HTMLCanvasElement, fileInput: HTMLInputElement)
     {
         this._canvas = canvas;
         this._connectom.biases.setAll(0);
@@ -23,6 +23,37 @@ class Model implements MLv0.Core.IEvaluatable
         context.lineWidth = 3;
         context.strokeStyle = cg; "rgba(11,27,47,1)";
         context.strokeRect(5, 5, 54, 54);
+
+
+        fileInput.addEventListener('change', async (event) =>
+        {
+            const fileList = (event.target as HTMLInputElement).files;
+            if (fileList)
+            {
+                for (var i = 0; i < fileList.length; i++)
+                {
+                    const file = fileList[i];
+                    const reader = new FileReader();
+                    const blob = new Promise<string>((resolve, reject) =>
+                    {
+                        reader.onload = () => resolve(reader.result as string);
+                        reader.onerror = () => reject(new Error(`Unable to read file: ${file.name}`));
+                        reader.onprogress = (event) =>
+                        {
+                            if (event.loaded && event.total)
+                            {
+                                const percent = (event.loaded / event.total) * 100;
+                                console.log(`Progress: ${Math.round(percent)}`);
+                            }
+                        };
+                    });
+
+                    reader.readAsText(file);
+
+                    console.log((await blob).length);
+                }
+            }
+        });
     }
 
     public async evaluate(): Promise<void>
@@ -51,5 +82,6 @@ var model: Model;
 window.onload = () =>
 {
     const canvas = document.getElementById('playArea') as HTMLCanvasElement;
-    model = new Model(canvas);
+    const file = document.getElementById('localFile') as HTMLInputElement;
+    model = new Model(canvas, file);
 };
