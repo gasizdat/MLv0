@@ -34,22 +34,31 @@ module MLv0.Core
             this._set.set(this.getGlobalIndex(index), value);
         }
 
-        public setAll(value: T): void
+        public setAll(value: T | T[]): void
         {
             const set = this._set;
-            this._indices.forEach((_, index) => set.set(index, value));
+            if (Array.isArray(value))
+            {
+                assert(value.length == this.length);
+                var i = 0;
+                this._indices.forEach(index => set.set(index, value[i++]));
+            }
+            else
+            {
+                this._indices.forEach(index => set.set(index, value));
+            }
         }
 
         public forEach(fn: (item: T) => void): void
         {
             const set = this._set;
-            this._indices.forEach(item => fn(set.get(item)));
+            this._indices.forEach(index => fn(set.get(index)));
         }
 
         public forEachIndex(fn: (item: T, index: number) => void): void
         {
             const set = this._set;
-            this._indices.forEach((item, index) => fn(set.get(item), index));
+            this._indices.forEach((globag_index, local_index) => fn(set.get(globag_index), local_index));
         }
 
         public getSubset(indices: number[]): Subset<T>

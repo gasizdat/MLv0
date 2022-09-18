@@ -5,6 +5,6 @@ module MLv0.Core
     {
         get(index: number): T;
         set(index: number, value: T): void;
-        setAll(value: T): void;
+        setAll(value: T | T[]): void;
     }
 }

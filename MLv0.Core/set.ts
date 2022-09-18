@@ -47,11 +47,19 @@ module MLv0.Core
             this._data[index] = value;
         }
 
-        public setAll(value: T): void
+        public setAll(value: T | T[]): void
         {
-            for (var i = 0; i < this._data.length; i++)
+            if (Array.isArray(value))
             {
-                this._data[i] = value;
+                assert(value.length == this.length);
+                this._data = value;
+            }
+            else
+            {
+                for (var i = 0; i < this._data.length; i++)
+                {
+                    this._data[i] = value;
+                }
             }
         }
 
