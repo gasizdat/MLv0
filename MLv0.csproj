@@ -76,6 +76,7 @@
     <TypeScriptCompile Include="MLv0.Net\connectom.ts" />
     <TypeScriptCompile Include="MLv0.Net\layer.ts" />
     <TypeScriptCompile Include="MLv0.Net\types.ts" />
+    <TypeScriptCompile Include="MLv0.UI\inputfile.ts" />
     <TypeScriptCompile Include="MLv0.UI\inputimage.ts" />
     <TypeScriptCompile Include="MLv0.Utils\ensure.ts" />
     <TypeScriptCompile Include="MLv0.Utils\range.ts" />

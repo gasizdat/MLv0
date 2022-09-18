@@ -1,5 +1,6 @@
 ﻿/// <reference path="MLv0.Net/connectom.ts" />
 /// <reference path="MLv0.Utils/ensure.ts" />
+/// <reference path="MLv0.UI/inputfile.ts" />
 /// <reference path="MLv0.UI/inputimage.ts" />
 
 class Model implements MLv0.Core.IEvaluatable
@@ -14,7 +15,7 @@ class Model implements MLv0.Core.IEvaluatable
             this._connectom.weights.set(i, -10 + Math.random() * 20);
         }
 
-        const context = MLv0.Utils.ensure(canvas.getContext("2d"));
+        /*const context = MLv0.Utils.ensure(canvas.getContext("2d"));
 
         var cg: CanvasGradient = context.createLinearGradient(0, 0, 64, 64);
         cg.addColorStop(0.10, "blue");
@@ -22,59 +23,62 @@ class Model implements MLv0.Core.IEvaluatable
         cg.addColorStop(0.40, "yellow");
         context.lineWidth = 3;
         context.strokeStyle = cg; "rgba(11,27,47,1)";
-        context.strokeRect(5, 5, 54, 54);
+        context.strokeRect(5, 5, 54, 54);*/
 
-
-        fileInput.addEventListener('change', async (event) =>
+        const $this = this;
+        fileInput.addEventListener('change', async (_) =>
         {
-            const fileList = (event.target as HTMLInputElement).files;
-            if (fileList)
-            {
-                for (var i = 0; i < fileList.length; i++)
-                {
-                    const file = fileList[i];
-                    const reader = new FileReader();
-                    const blob = new Promise<string>((resolve, reject) =>
-                    {
-                        reader.onload = () => resolve(reader.result as string);
-                        reader.onerror = () => reject(new Error(`Unable to read file: ${file.name}`));
-                        reader.onprogress = (event) =>
-                        {
-                            if (event.loaded && event.total)
-                            {
-                                const percent = (event.loaded / event.total) * 100;
-                                console.log(`Progress: ${Math.round(percent)}`);
-                            }
-                        };
-                    });
+            $this._contentIndex = 0;
+            $this._pictureIndex = 0;
+            const contents = await MLv0.UI.InputFile.getContents(fileInput);
+            $this._contents = contents.map(content => new MLv0.UI.InputFile(content, 28, 28));
 
-                    reader.readAsText(file);
-
-                    console.log((await blob).length);
-                }
-            }
+            console.log($this._contents.length);
+            window.requestAnimationFrame(this.evaluate.bind(this));
         });
     }
 
     public async evaluate(): Promise<void>
     {
-        const t1 = Date.now();
-        const image_data = await MLv0.UI.InputImage.getImageDataFromCanvas(this._canvas, this._width, this._height);
+        if (this._contents && this._contents.length > this._contentIndex)
+        {
+            const content = this._contents[this._contentIndex];
+            if (content.length > this._pictureIndex)
+            {
+                //const t1 = Date.now();
 
-        this._connectom.layers.get(0).inputs.setAll(image_data);
+                new MLv0.UI.InputImage(this._canvas, content.getSample(this._pictureIndex).bitmap, 2);
+                const image_data = await MLv0.UI.InputImage.getImageDataFromCanvas(this._canvas, this._width, this._height);
 
-        this._connectom.evaluate();
-        const duration = Date.now() - t1;
+                this._connectom.layers.get(0).inputs.setAll(image_data);
 
-        const outputs = this._connectom.layers.get(this._connectom.layers.length - 1).outputs;
-        outputs.forEachIndex((output, index) => console.log((index) + ": " + (output * 100).toFixed(2) + ", "));
-        console.log(`Duration ${duration}`);
+                this._connectom.evaluate();
+                /*const duration = Date.now() - t1;
+
+                const outputs = this._connectom.layers.get(this._connectom.layers.length - 1).outputs;
+                outputs.forEachIndex((output, index) => console.log((index) + ": " + (output * 100).toFixed(2) + ", "));
+                console.log(`Duration ${duration}`);*/
+                this._pictureIndex++;
+            }
+            else
+            {
+                this._pictureIndex = 0;
+                this._contentIndex++;
+            }
+        }
+
+        /*const $this = this;
+        setTimeout(() => window.requestAnimationFrame($this.evaluate.bind($this)), 100);*/
+        window.requestAnimationFrame(this.evaluate.bind(this));
     }
 
     private readonly _height = 12;
     private readonly _width = 12;
     private readonly _canvas: HTMLCanvasElement;
     private readonly _connectom = new MLv0.Net.Connectom(this._height * this._width, 51, 31, 10);
+    private _contents?: MLv0.UI.InputFile[];
+    private _contentIndex = 0;
+    private _pictureIndex = 0;
 }
 
 var model: Model;
