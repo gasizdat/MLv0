@@ -34,5 +34,24 @@ module MLv0.UI
             return ret;
         }
 
+        constructor(canvas: HTMLCanvasElement, bitmap: number[][], scale: number)
+        {
+            const context = MLv0.Utils.ensure(canvas.getContext("2d"));
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            var y = 0;
+            for (var row of bitmap)
+            {
+                var x = 0;
+                for (var col of row)
+                {
+                    const color = Math.floor(0xff * (1 - col)).toString(16);
+                    context.fillStyle = `#${color}${color}${color}`;
+                    x++;
+                    context.fillRect(x, y, scale, scale);
+                }
+                y++;
+            }
+        }
+
     }
 }
