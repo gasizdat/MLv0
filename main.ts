@@ -1,7 +1,7 @@
 ﻿/// <reference path="MLv0.Net/connectom.ts" />
 /// <reference path="MLv0.Utils/ensure.ts" />
-/// <reference path="MLv0.UI/inputfile.ts" />
-/// <reference path="MLv0.UI/inputimage.ts" />
+/// <reference path="MLv0.UI/input_file.ts" />
+/// <reference path="MLv0.UI/input_image.ts" />
 
 class Model implements MLv0.Core.IEvaluatable
 {
