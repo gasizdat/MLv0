@@ -1,4 +1,6 @@
-﻿/// <reference path="MLv0.Net/connectom.ts" />
+﻿/// <reference path="MLv0.Core/heaviside.ts" />
+/// <reference path="MLv0.Core/sigma.ts" />
+/// <reference path="MLv0.Net/connectom.ts" />
 /// <reference path="MLv0.Utils/ensure.ts" />
 /// <reference path="MLv0.UI/input_file.ts" />
 /// <reference path="MLv0.UI/input_image.ts" />
@@ -7,6 +9,12 @@ class Model implements MLv0.Core.IEvaluatable
 {
     constructor(canvas: HTMLCanvasElement, fileInput: HTMLInputElement)
     {
+        this._connectom = new MLv0.Net.Connectom(
+            { size: this._sensorHeight * this._sensorWidth, transferFunction: MLv0.Core.heaviside },
+            { size: 51, transferFunction: MLv0.Core.heaviside },
+            { size: 31, transferFunction: MLv0.Core.heaviside },
+            { size: 10, transferFunction: MLv0.Core.sigma }
+        );
         this._canvas = canvas;
         this._connectom.biases.setAll(0);
 
@@ -45,7 +53,7 @@ class Model implements MLv0.Core.IEvaluatable
             const content = this._contents[this._contentIndex];
             if (content.length > this._pictureIndex)
             {
-                //const t1 = Date.now();
+                const t1 = Date.now();
 
                 await MLv0.UI.InputImage.draw(
                     this._canvas,
@@ -59,11 +67,11 @@ class Model implements MLv0.Core.IEvaluatable
                 this._connectom.layers.get(0).inputs.setAll(image_data);
 
                 this._connectom.evaluate();
-                /*const duration = Date.now() - t1;
+                const duration = Date.now() - t1;
 
                 const outputs = this._connectom.layers.get(this._connectom.layers.length - 1).outputs;
                 outputs.forEachIndex((output, index) => console.log((index) + ": " + (output * 100).toFixed(2) + ", "));
-                console.log(`Duration ${duration}`);*/
+                console.log(`Duration ${duration}`);
                 this._pictureIndex++;
             }
             else
@@ -84,7 +92,7 @@ class Model implements MLv0.Core.IEvaluatable
     private readonly _dataSetWidth = 28;
     private readonly _dataScale = 2.3;
     private readonly _canvas: HTMLCanvasElement;
-    private readonly _connectom = new MLv0.Net.Connectom(this._sensorHeight * this._sensorWidth, 51, 31, 10);
+    private readonly _connectom: MLv0.Net.Connectom;
     private _contents?: MLv0.UI.InputFile[];
     private _contentIndex = 0;
     private _pictureIndex = 0;

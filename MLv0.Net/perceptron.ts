@@ -9,8 +9,7 @@ module MLv0.Net
     type Inputs = MLv0.Core.Subset<SignalType>;
     type Output = MLv0.Core.Subset1<SignalType>;
     type Weights = MLv0.Core.Subset<WeightType>;
-    type Biases = MLv0.Core.Subset1<BiasType>;
-    type TransferFunction = (value: number) => number;
+    type Biases = MLv0.Core.Subset1<BiasType>;    
 
     export class Perceptron implements MLv0.Core.IEvaluatable
     {
