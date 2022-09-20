@@ -29,8 +29,8 @@ module MLv0.UI
             const ret = new Array<number>(img_data.length / 4);
             for (var i = 0, j = 0; i < img_data.length; i += 4, j++)
             {
-                const pix = img_data[i] || img_data[i + 1] || img_data[i + 2] || img_data[i + 3];
-                ret[j] = (pix ? 1.0 : 0.0);
+                const black = img_data[i] != 255 || img_data[i + 1] != 255 || img_data[i + 2] != 255;// || img_data[i + 3] != 255;
+                ret[j] = black ? 1.0 : 0.0;
             }
             return ret;
         }
