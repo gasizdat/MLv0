@@ -47,7 +47,7 @@ class Model implements MLv0.Core.IEvaluatable
             {
                 //const t1 = Date.now();
 
-                new MLv0.UI.InputImage(this._canvas, content.getSample(this._pictureIndex).bitmap, 2);
+                await MLv0.UI.InputImage.draw(this._canvas, content.getSample(this._pictureIndex).bitmap, 2);
                 const image_data = await MLv0.UI.InputImage.getImageDataFromCanvas(this._canvas, this._width, this._height);
 
                 this._connectom.layers.get(0).inputs.setAll(image_data);

@@ -34,7 +34,7 @@ module MLv0.UI
             return ret;
         }
 
-        constructor(canvas: HTMLCanvasElement, bitmap: number[][], scale: number)
+        public static async draw(canvas: HTMLCanvasElement, bitmap: number[][], scale: number): Promise<void>
         {
             const context = MLv0.Utils.ensure(canvas.getContext("2d"));
             context.clearRect(0, 0, canvas.width, canvas.height);
