@@ -1,4 +1,5 @@
 ﻿/// <reference path="../MLv0.Utils/ensure.ts" />
+/// <reference path="../MLv0.Utils/to_int.ts" />
 
 module MLv0.UI
 {
@@ -34,24 +35,22 @@ module MLv0.UI
             return ret;
         }
 
-        public static async draw(canvas: HTMLCanvasElement, bitmap: number[][], scale: number): Promise<void>
+        public static async draw(canvas: HTMLCanvasElement, bitmap: number[], width: number, height: number, scale: number): Promise<void>
         {
+            Utils.assert(bitmap.length == width * height);
             const context = MLv0.Utils.ensure(canvas.getContext("2d"));
             context.clearRect(0, 0, canvas.width, canvas.height);
-            var y = 0;
-            for (var row of bitmap)
+            for (var y = 0; y < height * scale; y++)
             {
-                var x = 0;
-                for (var col of row)
+                const offset = Utils.toInt(y / scale) * width;
+                for (var x = 0; x < width * scale; x++)
                 {
-                    const color = Math.floor(0xff * (1 - col)).toString(16);
+                    const pixel = 1 - bitmap[offset + Utils.toInt(x / scale)];
+                    const color = Math.floor(0xff * pixel).toString(16);
                     context.fillStyle = `#${color}${color}${color}`;
-                    x++;
-                    context.fillRect(x, y, scale, scale);
+                    context.fillRect(x, y, 1, 1);
                 }
-                y++;
             }
         }
-
     }
 }

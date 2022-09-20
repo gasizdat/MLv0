@@ -60,20 +60,31 @@ module MLv0.UI
             return (this._lines.length - 1) / (this._height + 1);
         }
 
-        public getSample(index: number): { value: number, bitmap: number[][] }
+        public get width(): number
+        {
+            return this._width;
+        }
+        public get height(): number
+        {
+            return this._height;
+        }
+
+        public getSample(index: number): { value: number, bitmap: number[] }
         {
             var i = 1 + index * (this._height + 1);
             assert(i < this._lines.length);
-            const value = Number.parseInt(this._lines[i]);
-            const ret = { value: value, bitmap: new Array<number[]>() };
+            const value = Number.parseInt(this._lines[i++]);
+            const ret = { value: value, bitmap: new Array<number>() };
             const stop = i + this._height;
-            for (i++; i < stop; i++)
+            for (i; i < stop; i++)
             {
                 assert(i < this._lines.length);
                 const pixels = InputFile.trimLast(this._lines[i].split(" "));
                 assert(pixels.length == this._width);
-                ret.bitmap.push(pixels.map<number>(value => Number.parseFloat(value)));
+                ret.bitmap.push(...pixels.map<number>(value => Number.parseFloat(value)));
             }
+
+            Utils.assert(ret.bitmap.length == this._width * this._height);
             return ret;
         }
 

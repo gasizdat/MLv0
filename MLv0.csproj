@@ -79,6 +79,7 @@
     <TypeScriptCompile Include="MLv0.UI\input_file.ts" />
     <TypeScriptCompile Include="MLv0.UI\input_image.ts" />
     <TypeScriptCompile Include="MLv0.Utils\ensure.ts" />
+    <TypeScriptCompile Include="MLv0.Utils\to_int.ts" />
     <TypeScriptCompile Include="MLv0.Utils\range.ts" />
     <TypeScriptCompile Include="MLv0.Utils\deduplicate.ts" />
     <TypeScriptCompile Include="MLv0.Utils\assert.ts" />

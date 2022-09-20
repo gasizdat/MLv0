@@ -31,7 +31,7 @@ class Model implements MLv0.Core.IEvaluatable
             $this._contentIndex = 0;
             $this._pictureIndex = 0;
             const contents = await MLv0.UI.InputFile.getContents(fileInput);
-            $this._contents = contents.map(content => new MLv0.UI.InputFile(content, 28, 28));
+            $this._contents = contents.map(content => new MLv0.UI.InputFile(content, this._dataSetWidth, this._dataSetHeight));
 
             console.log($this._contents.length);
             window.requestAnimationFrame(this.evaluate.bind(this));
@@ -47,8 +47,14 @@ class Model implements MLv0.Core.IEvaluatable
             {
                 //const t1 = Date.now();
 
-                await MLv0.UI.InputImage.draw(this._canvas, content.getSample(this._pictureIndex).bitmap, 2);
-                const image_data = await MLv0.UI.InputImage.getImageDataFromCanvas(this._canvas, this._width, this._height);
+                await MLv0.UI.InputImage.draw(
+                    this._canvas,
+                    content.getSample(this._pictureIndex).bitmap,
+                    content.width,
+                    content.height,
+                    this._dataScale
+                );
+                const image_data = await MLv0.UI.InputImage.getImageDataFromCanvas(this._canvas, this._sensorWidth, this._sensorHeight);
 
                 this._connectom.layers.get(0).inputs.setAll(image_data);
 
@@ -67,15 +73,18 @@ class Model implements MLv0.Core.IEvaluatable
             }
         }
 
-        /*const $this = this;
-        setTimeout(() => window.requestAnimationFrame($this.evaluate.bind($this)), 100);*/
-        window.requestAnimationFrame(this.evaluate.bind(this));
+        const duration = 0;
+        const $this = this;
+        setTimeout(() => window.requestAnimationFrame($this.evaluate.bind($this)), duration);
     }
 
-    private readonly _height = 12;
-    private readonly _width = 12;
+    private readonly _sensorHeight = 12;
+    private readonly _sensorWidth = 12;
+    private readonly _dataSetHeight = 28;
+    private readonly _dataSetWidth = 28;
+    private readonly _dataScale = 2.3;
     private readonly _canvas: HTMLCanvasElement;
-    private readonly _connectom = new MLv0.Net.Connectom(this._height * this._width, 51, 31, 10);
+    private readonly _connectom = new MLv0.Net.Connectom(this._sensorHeight * this._sensorWidth, 51, 31, 10);
     private _contents?: MLv0.UI.InputFile[];
     private _contentIndex = 0;
     private _pictureIndex = 0;
