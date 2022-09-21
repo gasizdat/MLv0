@@ -38,19 +38,65 @@ module MLv0.UI
         public static async draw(canvas: HTMLCanvasElement, bitmap: number[], width: number, height: number, scale: number): Promise<void>
         {
             Utils.assert(bitmap.length == width * height);
+
             const context = MLv0.Utils.ensure(canvas.getContext("2d"));
+            const scaled_width = Math.ceil(width * scale);
+            var i = 0;
+
+            context.beginPath();
             context.clearRect(0, 0, canvas.width, canvas.height);
-            for (var y = 0; y < height * scale; y++)
+
+            for (var pixel of InputImage.scale(bitmap, width, height, scale))
             {
-                const offset = Utils.toInt(y / scale) * width;
-                for (var x = 0; x < width * scale; x++)
+                const x = Utils.toInt(i % scaled_width);
+                const y = Utils.toInt(i / scaled_width);
+                const color = Math.floor(0xff * pixel).toString(16);
+
+                context.fillStyle = `#${color}${color}${color}`;
+                context.fillRect(x, y, 1, 1);
+                i++;
+            }
+
+            context.closePath();
+        }
+
+        public static scale(bitmap: number[], width: number, height: number, scale: number): number[]
+        {
+            Utils.assert(bitmap.length == width * height);
+
+            const scale_factor = 1 / scale;
+            const ret = new Array<number>(Utils.toInt(width * height * scale * scale));
+
+            //if (scale_factor > 1)
+            //{
+            //    const last_pixels = new Array<number>(Utils.toInt(1 / scale));
+            //    var lp = 0;
+            //    for (var y = 0; y < height; y++)
+            //    {
+            //        const original_offset = y * width;
+            //        for (var x = 0; x < width; x++)
+            //        {
+            //            const original_index = original_offset + x;
+            //            const pixel = 1 - bitmap[original_index];
+            //            last_pixels[lp++] = pixel;
+
+            //        }
+            //    }
+            //}
+            //else
+            {
+                var p = 0;
+                for (var y = 0; y < height; y += scale_factor)
                 {
-                    const pixel = 1 - bitmap[offset + Utils.toInt(x / scale)];
-                    const color = Math.floor(0xff * pixel).toString(16);
-                    context.fillStyle = `#${color}${color}${color}`;
-                    context.fillRect(x, y, 1, 1);
+                    const offset = Utils.toInt(y) * width;
+                    for (var x = 0; x < width; x += scale_factor)
+                    {
+                        const pixel = 1 - bitmap[offset + Utils.toInt(x)];
+                        ret[p++] = pixel;
+                    }
                 }
             }
+            return ret;
         }
     }
 }
