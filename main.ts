@@ -5,6 +5,40 @@
 /// <reference path="MLv0.UI/input_file.ts" />
 /// <reference path="MLv0.UI/input_image.ts" />
 
+class MotionZoom
+{
+    constructor(zoom_factor: number, zoom_step: number)
+    {
+        this._zoomFactor = zoom_factor * zoom_step;
+        this._zoomStep = zoom_step;
+        this._currentValue = 1;
+        this._currentMultiplier = zoom_step;
+    }
+
+    public get value(): number
+    {
+        return this._currentValue;
+    }
+
+    public evaluate(): void
+    {
+        this._currentValue *= this._currentMultiplier
+        if (this._currentValue >= this._zoomFactor)
+        {
+            this._currentMultiplier = 1 / this._zoomStep;
+        }
+        else if (this._currentValue <= 1 / this._zoomFactor)
+        {
+            this._currentMultiplier = this._zoomStep;
+        }
+    }
+
+    private readonly _zoomFactor: number;
+    private readonly _zoomStep: number;
+    private _currentMultiplier: number;
+    private _currentValue: number;
+}
+
 class Model implements MLv0.Core.IEvaluatable
 {
     constructor(canvas: HTMLCanvasElement, fileInput: HTMLInputElement)
@@ -22,16 +56,6 @@ class Model implements MLv0.Core.IEvaluatable
         {
             this._connectom.weights.set(i, -10 + Math.random() * 20);
         }
-
-        /*const context = MLv0.Utils.ensure(canvas.getContext("2d"));
-
-        var cg: CanvasGradient = context.createLinearGradient(0, 0, 64, 64);
-        cg.addColorStop(0.10, "blue");
-        cg.addColorStop(0.20, "green");
-        cg.addColorStop(0.40, "yellow");
-        context.lineWidth = 3;
-        context.strokeStyle = cg; "rgba(11,27,47,1)";
-        context.strokeRect(5, 5, 54, 54);*/
 
         const $this = this;
         fileInput.addEventListener('change', async (_) =>
@@ -60,7 +84,7 @@ class Model implements MLv0.Core.IEvaluatable
                     content.getSample(this._pictureIndex).bitmap,
                     content.width,
                     content.height,
-                    this._dataScale
+                    this._dataScale.value
                 );
                 const image_data = await MLv0.UI.InputImage.getImageDataFromCanvas(this._canvas, this._sensorWidth, this._sensorHeight);
 
@@ -79,6 +103,7 @@ class Model implements MLv0.Core.IEvaluatable
                 this._pictureIndex = 0;
                 this._contentIndex++;
             }
+            this._dataScale.evaluate();
         }
 
         const duration = 0;
@@ -90,7 +115,7 @@ class Model implements MLv0.Core.IEvaluatable
     private readonly _sensorWidth = 12;
     private readonly _dataSetHeight = 28;
     private readonly _dataSetWidth = 28;
-    private readonly _dataScale = 2.3;
+    private readonly _dataScale = new MotionZoom(2, 1.013);
     private readonly _canvas: HTMLCanvasElement;
     private readonly _connectom: MLv0.Net.Connectom;
     private _contents?: MLv0.UI.InputFile[];
