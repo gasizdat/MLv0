@@ -73,6 +73,8 @@
     <TypeScriptCompile Include="MLv0.Core\iset.ts" />
     <TypeScriptCompile Include="MLv0.Core\heaviside.ts" />
     <TypeScriptCompile Include="MLv0.Core\subset1.ts" />
+    <TypeScriptCompile Include="MLv0.GA\generation.ts" />
+    <TypeScriptCompile Include="MLv0.GA\gen.ts" />
     <TypeScriptCompile Include="MLv0.Net\connectom.ts" />
     <TypeScriptCompile Include="MLv0.Net\layer.ts" />
     <TypeScriptCompile Include="MLv0.Net\types.ts" />

@@ -1,5 +1,6 @@
 ﻿/// <reference path="MLv0.Core/heaviside.ts" />
 /// <reference path="MLv0.Core/sigma.ts" />
+/// <reference path="MLv0.GA/generation.ts" />
 /// <reference path="MLv0.Net/connectom.ts" />
 /// <reference path="MLv0.Utils/ensure.ts" />
 /// <reference path="MLv0.UI/input_file.ts" />
@@ -79,9 +80,9 @@ class Model implements MLv0.Core.IEvaluatable
             {
                 const t1 = Date.now();
                 const draw_scale = this._dataScale.value;
-                const source_bitmap = content.getSample(this._pictureIndex).bitmap;
+                const source = content.getSample(this._pictureIndex);
                 const scaled_image = MLv0.UI.InputImage.scale(
-                    source_bitmap,
+                    source.bitmap,
                     content.width,
                     content.height,
                     draw_scale
@@ -97,7 +98,7 @@ class Model implements MLv0.Core.IEvaluatable
                 const sensor_scale = this._sensorWidth / content.width;
                 MLv0.Utils.assert(sensor_scale == this._sensorHeight / content.height)
                 const input_image = MLv0.UI.InputImage.scale(
-                    source_bitmap,
+                    source.bitmap,
                     content.width,
                     content.height,
                     sensor_scale
@@ -110,7 +111,7 @@ class Model implements MLv0.Core.IEvaluatable
 
                 const outputs = this._connectom.layers.get(this._connectom.layers.length - 1).outputs;
                 outputs.forEachIndex((output, index) => console.log((index) + ": " + (output * 100).toFixed(2) + ", "));
-                console.log(`Duration ${duration}`);
+                console.log(`Duration ${duration}, actual: ${source.value}`);
                 this._pictureIndex++;
             }
             else
@@ -140,8 +141,68 @@ class Model implements MLv0.Core.IEvaluatable
 
 var model: Model;
 
+function generationTest()
+{
+    const generation = new MLv0.GA.Generation<string>([
+        [
+            new MLv0.GA.Gen("A"),
+            new MLv0.GA.Gen("B"),
+            new MLv0.GA.Gen("C"),
+            new MLv0.GA.Gen("D")
+        ],
+        [
+            new MLv0.GA.Gen("E"),
+            new MLv0.GA.Gen("F"),
+            new MLv0.GA.Gen("G"),
+            new MLv0.GA.Gen("H")
+        ],
+        [
+            new MLv0.GA.Gen("I"),
+            new MLv0.GA.Gen("K"),
+            new MLv0.GA.Gen("L"),
+            new MLv0.GA.Gen("M")
+        ],
+        [
+            new MLv0.GA.Gen("X"),
+            new MLv0.GA.Gen("Y"),
+            new MLv0.GA.Gen("Z"),
+            new MLv0.GA.Gen("W")
+        ]
+    ]);
+
+    generation.setRank(generation.genomes[3], 3);
+    generation.setRank(generation.genomes[2], 4);
+    generation.setRank(generation.genomes[1], 5);
+    generation.setRank(generation.genomes[0], 2);
+
+    const new_generation = generation.newGeneration((a, b) =>
+    {
+        if ((Math.random() * 3) > 1.5)
+        {
+            return a;
+        }
+        else
+        {
+            return b;
+        }
+    }, (value) =>
+    {
+        if ((Math.random() * 17) > 15.7)
+        {
+            return value += "m";
+        }
+        else
+        {
+            return value;
+        }
+    });
+    console.log(new_generation);
+}
+
 window.onload = () =>
 {
+    generationTest();
+
     const canvas = document.getElementById('playArea') as HTMLCanvasElement;
     const file = document.getElementById('localFile') as HTMLInputElement;
     model = new Model(canvas, file);
