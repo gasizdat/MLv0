@@ -35,21 +35,20 @@ module MLv0.UI
             return ret;
         }
 
-        public static async draw(canvas: HTMLCanvasElement, bitmap: number[], width: number, height: number, scale: number): Promise<void>
+        public static async draw(canvas: HTMLCanvasElement, bitmap: number[], width: number, height: number): Promise<void>
         {
             Utils.assert(bitmap.length == width * height);
 
             const context = MLv0.Utils.ensure(canvas.getContext("2d"));
-            const scaled_width = Math.ceil(width * scale);
             var i = 0;
 
             context.beginPath();
             context.clearRect(0, 0, canvas.width, canvas.height);
 
-            for (var pixel of InputImage.scale(bitmap, width, height, scale))
+            for (var pixel of bitmap)
             {
-                const x = Utils.toInt(i % scaled_width);
-                const y = Utils.toInt(i / scaled_width);
+                const x = Utils.toInt(i % width);
+                const y = Utils.toInt(i / width);
                 const color = Math.floor(0xff * pixel).toString(16);
 
                 context.fillStyle = `#${color}${color}${color}`;
@@ -60,12 +59,23 @@ module MLv0.UI
             context.closePath();
         }
 
-        public static scale(bitmap: number[], width: number, height: number, scale: number): number[]
+        public static scale(bitmap: number[], width: number, height: number, scale: number): { bitmap: number[], width: number, height: number }
         {
             Utils.assert(bitmap.length == width * height);
+            const scaled_width = InputImage.getScaled(width, scale);
+            const scaled_height = InputImage.getScaled(height, scale);
+
+            if (scale == 1.0)
+            {
+                return {
+                    bitmap: bitmap,
+                    width: width,
+                    height: height
+                };
+            }
 
             const scale_factor = 1 / scale;
-            const ret = new Array<number>(Utils.toInt(width * height * scale * scale));
+            const ret = new Array<number>(Utils.toInt(scaled_width * scaled_height));
 
             //if (scale_factor > 1)
             //{
@@ -86,17 +96,31 @@ module MLv0.UI
             //else
             {
                 var p = 0;
-                for (var y = 0; y < height; y += scale_factor)
+                for (var y = 0; InputImage.less(y, height, scale_factor); y += scale_factor)
                 {
                     const offset = Utils.toInt(y) * width;
-                    for (var x = 0; x < width; x += scale_factor)
+                    for (var x = 0; InputImage.less(x, width, scale_factor); x += scale_factor)
                     {
                         const pixel = 1 - bitmap[offset + Utils.toInt(x)];
                         ret[p++] = pixel;
                     }
                 }
             }
-            return ret;
+            return {
+                bitmap: ret,
+                width: scaled_width,
+                height: scaled_height
+            };
+        }
+
+        private static getScaled(x: number, scale: number): number
+        {
+            return Utils.toInt(x * scale);
+        }
+
+        private static less(a: number, b: number, scale: number): boolean
+        {
+            return (b - a) >= scale;
         }
     }
 }
