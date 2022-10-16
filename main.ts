@@ -78,17 +78,32 @@ class Model implements MLv0.Core.IEvaluatable
             if (content.length > this._pictureIndex)
             {
                 const t1 = Date.now();
+                const draw_scale = this._dataScale.value;
+                const source_bitmap = content.getSample(this._pictureIndex).bitmap;
+                const scaled_image = MLv0.UI.InputImage.scale(
+                    source_bitmap,
+                    content.width,
+                    content.height,
+                    draw_scale
+                );
 
                 await MLv0.UI.InputImage.draw(
                     this._canvas,
-                    content.getSample(this._pictureIndex).bitmap,
+                    scaled_image.bitmap,
+                    scaled_image.width,
+                    scaled_image.height
+                );
+
+                const sensor_scale = this._sensorWidth / content.width;
+                MLv0.Utils.assert(sensor_scale == this._sensorHeight / content.height)
+                const input_image = MLv0.UI.InputImage.scale(
+                    source_bitmap,
                     content.width,
                     content.height,
-                    this._dataScale.value
+                    sensor_scale
                 );
-                const image_data = await MLv0.UI.InputImage.getImageDataFromCanvas(this._canvas, this._sensorWidth, this._sensorHeight);
 
-                this._connectom.layers.get(0).inputs.setAll(image_data);
+                this._connectom.layers.get(0).inputs.setAll(input_image.bitmap);
 
                 this._connectom.evaluate();
                 const duration = Date.now() - t1;
