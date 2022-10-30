@@ -1,59 +1,43 @@
-﻿/// <reference path="gen.ts" />
+﻿/// <reference path="genome.ts" />
 
 module MLv0.GA
 {
-    export type Genome<TData> = Gen<TData>[];
     export class Generation<TData>
     {
         constructor(genomes: Genome<TData>[])
         {
+            Utils.assert(genomes.length >= 4);
+            Utils.assert(genomes.length % 2 == 0);
+
             this._genomes = genomes;
-            this._ranks = new Array<number>(this._genomes.length);
         }
         public get genomes(): Genome<TData>[]
         {
             return this._genomes;
         }
-        public setRank(gen: Genome<TData>, rank: number): void
+        public get generation()
         {
-            const index = this._genomes.indexOf(gen);
-            Utils.assert(index >= 0);
-            this._ranks[index] = rank;
+            return this._generation;
         }
-        public newGeneration(cross_function: (a: Gen<TData>, b: Gen<TData>) => Gen<TData>, mutagen: (data: TData) => TData): Generation<TData>
+        public evaluate(cross_function: (a: TData, b: TData) => TData, mutagen: (data: TData) => TData): void
         {
-            const ranks = new Array<number>(...this._ranks);
-            const genomes = new Array<Genome<TData>>(...this.genomes);
-            genomes.sort((a: Genome<TData>, b: Genome<TData>) =>
+            this.genomes.sort((a, b) => a.rank - b.rank);
+            const startIndex = this.genomes.length / 2;
+            for (var i = startIndex; i < this.genomes.length; i++)
             {
-                const ia = genomes.indexOf(a);
-                const ib = genomes.indexOf(b);
-                const ra = ranks[ia] ?? 0;
-                const rb = ranks[ib] ?? 0;
-                return ra - rb;
-            });
-            const remove_count = genomes.length / 2;
-            genomes.splice(0, remove_count);
-            Utils.assert(genomes.length >= 2);
-
-            for (let i = 0; genomes.length < this.genomes.length; i++)
-            {
-                const g1 = genomes[i];
-                const g2 = genomes[i + 1];
+                const g1 = this.genomes[i - startIndex];
+                const g2 = this.genomes[i - startIndex + 1];
                 Utils.assert(g1.length == g2.length)
-                const new_genome: Gen<TData>[] = [];
                 for (let j = 0; j < g1.length; j++)
                 {
-                    new_genome.push(cross_function(g1[j], g2[j]).mutate(mutagen));
+                    this.genomes[i].data[j] = mutagen(cross_function(g1.data[j], g2.data[j]));
                 }
-                genomes.push(new_genome);
+                this.genomes[i].rank = NaN;
             }
-
-            const new_generation = new Generation<TData>(genomes);
-            return new_generation;
+            this._generation++;
         }
 
         private readonly _genomes: Genome<TData>[];
-        private readonly _ranks: number[];
+        private _generation = 0;
     }
 }
