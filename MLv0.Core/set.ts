@@ -63,6 +63,16 @@ module MLv0.Core
             }
         }
 
+        public forEach(fn: (item: T) => void): void
+        {
+            this._data.forEach(item => fn(item));
+        }
+
+        public forEachIndex(fn: (item: T, index: number) => void): void
+        {
+            this._data.forEach((item, index) => fn(item, index));
+        }
+
         protected checkIndex(index: number): void
         {
             assert(0 <= index && index < this._data.length);
