@@ -89,21 +89,80 @@ class Model implements MLv0.Core.IEvaluatable
     public async evaluate(): Promise<void>
     {
         MLv0.Utils.assert(this._weightsGeneration.genomes.length == this._biasesGeneration.genomes.length);
-
-        for (var i = 0; i < this._weightsGeneration.genomes.length; i++)
+        for (var iteration = 0; iteration < 100; iteration++)
         {
-            const weightsGenome = this._weightsGeneration.genomes[i];
-            const biasesGenome = this._biasesGeneration.genomes[i];
-            const connectom = new MLv0.Net.Connectom(
-                { size: this._sensorHeight * this._sensorWidth, transferFunction: MLv0.Core.heaviside },
-                { size: 51, transferFunction: MLv0.Core.heaviside },
-                { size: 31, transferFunction: MLv0.Core.heaviside },
-                { size: 10, transferFunction: MLv0.Core.sigma });
+            console.log(`Generation: ${this._weightsGeneration.generation}`);
+            for (var i = 0; i < this._weightsGeneration.genomes.length; i++)
+            {
+                const weightsGenome = this._weightsGeneration.genomes[i];
+                const biasesGenome = this._biasesGeneration.genomes[i];
+                if (weightsGenome.hasRank)
+                {
+                    MLv0.Utils.assert(biasesGenome.hasRank);
+                    continue;
+                }
 
-            connectom.weights.setAll(weightsGenome.data);
-            connectom.biases.setAll(biasesGenome.data);
-            const assessment = await this.trainClassifier(connectom);
-            console.log(`Assessment: ${assessment}`);
+                const connectom = new MLv0.Net.Connectom(
+                    { size: this._sensorHeight * this._sensorWidth, transferFunction: MLv0.Core.heaviside },
+                    { size: 51, transferFunction: MLv0.Core.heaviside },
+                    { size: 31, transferFunction: MLv0.Core.heaviside },
+                    { size: 10, transferFunction: MLv0.Core.sigma });
+
+                connectom.weights.setAll(weightsGenome.data);
+                connectom.biases.setAll(biasesGenome.data);
+                const assessment = await this.trainClassifier(connectom);
+                console.log(`Assessment: ${assessment}`);
+                weightsGenome.rank = assessment;
+                biasesGenome.rank = assessment;
+            }
+            this._weightsGeneration.evaluate((a, b) =>
+            {
+                if ((Math.random() * 3) > 1.5)
+                {
+                    return a;
+                }
+                else
+                {
+                    return b;
+                }
+            }, (value) =>
+            {
+                if ((Math.random() * 17) > 15.7)
+                {
+                    return value * (0.9 + 1.2 * Math.random());
+                }
+                else
+                {
+                    return value;
+                }
+            });
+            this._biasesGeneration.evaluate((a, b) =>
+            {
+                if ((Math.random() * 3) > 1.5)
+                {
+                    return a;
+                }
+                else
+                {
+                    return b;
+                }
+            }, (value) =>
+            {
+                if ((Math.random() * 17) > 15.7)
+                {
+                    return value * (0.9 + 1.2 * Math.random());
+                }
+                else
+                {
+                    return value;
+                }
+            });
+            const p = document.getElementById('info') as HTMLParagraphElement;
+            if (p)
+            {
+                p.textContent = `Best rank: ${this._weightsGeneration.genomes[0].rank}. ` +
+                    `Generation: ${this._weightsGeneration.generation}`;
+            }
         }
     }
 
@@ -140,11 +199,6 @@ class Model implements MLv0.Core.IEvaluatable
                 currentAssessment += Model.fitnessFunction(Model.getOutputs(connectom), sample.value);
                 MLv0.Utils.assert(isFinite(currentAssessment));
                 MLv0.Utils.assert(!isNaN(currentAssessment));
-
-                /*const duration = Date.now() - t1;
-
-                this.outputs.forEachIndex((output, index) => console.log((index) + ": " + (output * 100).toFixed(2) + ", "));
-                console.log(`Duration ${duration}, actual: ${sample.value}`);*/
 
                 if (((sampleCount++) % 300) == 0)
                 {
@@ -197,8 +251,8 @@ class Model implements MLv0.Core.IEvaluatable
         var result = 0;
         outputs.forEachIndex((output, index) =>
         {
-            const rate = (1 - output + 1e-50);
-            result += (index == value) ? rate : (-rate);
+            const rate = (output == 1) ? 1e-3 : (1 - output);
+            result += 1 / ((index == value) ? rate : (-rate));
         });
         return result;
     }
