@@ -19,9 +19,9 @@ module MLv0.GA
         {
             this._rate = value;
         }
-        public get hasRate(): boolean
+        public get hasRank(): boolean
         {
-            return isNaN(this.rank);
+            return !isNaN(this.rank);
         }
         public get length(): number
         {

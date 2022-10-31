@@ -21,7 +21,7 @@ module MLv0.GA
         }
         public evaluate(cross_function: (a: TData, b: TData) => TData, mutagen: (data: TData) => TData): void
         {
-            this.genomes.sort((a, b) => a.rank - b.rank);
+            this.genomes.sort((a, b) => b.rank - a.rank);
             const startIndex = this.genomes.length / 2;
             for (var i = startIndex; i < this.genomes.length; i++)
             {
