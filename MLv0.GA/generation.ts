@@ -25,8 +25,10 @@ module MLv0.GA
             const startIndex = this.genomes.length / 2;
             for (var i = startIndex; i < this.genomes.length; i++)
             {
-                const g1 = this.genomes[i - startIndex];
-                const g2 = this.genomes[i - startIndex + 1];
+                const firstParent = i - startIndex;
+                const secondParent = Math.min(Math.trunc(Math.random() * this.genomes.length), this.genomes.length - 1);
+                const g1 = this.genomes[firstParent];
+                const g2 = this.genomes[secondParent];
                 Utils.assert(g1.length == g2.length)
                 for (let j = 0; j < g1.length; j++)
                 {
