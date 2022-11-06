@@ -5,11 +5,20 @@
     <link rel="stylesheet" href="app.css" type="text/css" />
 </head>
 <body>
-    <p><canvas id="playArea" class="playArea" width="64" height="64">
-        Your browser doesn't supported HTML5 canvas
-    </canvas></p>
-    <p><input type="button" value="Evaluate" onclick="model.evaluate()"/></p>
-    <p><input type="file" id="localFile" multiple/></p>
-    <p id="info"></p>
+    <table>
+        <tr>
+            <td>
+                <p>
+                    <canvas id="playArea" class="playArea" width="64" height="64">
+                        Your browser doesn't supported HTML5 canvas
+                    </canvas>
+                </p>
+                <p id="predictedNumber">?</p>
+                <p><input type="button" value="Evaluate" onclick="model.evaluate()" /></p>
+                <p><input type="file" id="localFile" multiple /></p>
+            </td>
+            <td><p id="info"></p></td>
+        </tr>
+    </table>
 </body>
 </html>
