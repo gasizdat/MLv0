@@ -44,34 +44,49 @@ class Model implements MLv0.Core.IEvaluatable
 {
     constructor(canvas: HTMLCanvasElement, fileInput: HTMLInputElement)
     {
-        this._connectom = new MLv0.Net.Connectom(
-            { size: this._sensorHeight * this._sensorWidth, transferFunction: MLv0.Core.heaviside },
-            { size: 51, transferFunction: MLv0.Core.heaviside },
-            { size: 31, transferFunction: MLv0.Core.heaviside },
-            { size: 10, transferFunction: MLv0.Core.sigma }
-        );
+        this._connectom = new MLv0.Net.Connectom(...this.population);
         this._canvas = canvas;
 
         const genomLength = 20;
-        const weightsGeneration = new Array<MLv0.GA.Genome<MLv0.Net.WeightType>>(genomLength);
-        const biasesGeneration = new Array<MLv0.GA.Genome<MLv0.Net.BiasType>>(genomLength);
-        for (var i = 0; i < genomLength; i++)
+        var weightsGeneration = new Array<MLv0.GA.Genome<MLv0.Net.WeightType>>(genomLength);
+        var biasesGeneration = new Array<MLv0.GA.Genome<MLv0.Net.BiasType>>(genomLength);
+
+        const storedWeights = localStorage.getItem(this._weightsKey);
+        const storedBiases = localStorage.getItem(this._biasesKey);
+        if (storedWeights && storedBiases)
         {
-            const weights = new Array<MLv0.Net.WeightType>(this._connectom.weights.length);
-            const biases = new Array<MLv0.Net.BiasType>(this._connectom.biases.length);
-
-            for (var j = 0; j < weights.length; j++)
+            const weightGenomes = JSON.parse(storedWeights) as number[][];
+            const biaseGenomes = JSON.parse(storedBiases) as number[][];
+            if (weightGenomes.length == genomLength &&
+                biaseGenomes.length == genomLength &&
+                weightGenomes[0].length == this._connectom.weights.length &&
+                biaseGenomes[0].length == this._connectom.biases.length)
             {
-                weights[j] = -10 + Math.random() * 20;
+                weightsGeneration = weightGenomes.map(genome => new MLv0.GA.Genome<MLv0.Net.WeightType>(genome));
+                biasesGeneration = biaseGenomes.map(genome => new MLv0.GA.Genome<MLv0.Net.BiasType>(genome));
             }
-            for (var j = 0; j < biases.length; j++)
-            {
-                biases[j] = Math.random();
-            }
-
-            weightsGeneration[i] = new MLv0.GA.Genome<MLv0.Net.WeightType>(weights);
-            biasesGeneration[i] = new MLv0.GA.Genome<MLv0.Net.BiasType>(biases);
         }
+        else
+        {
+            for (var i = 0; i < genomLength; i++)
+            {
+                const weights = new Array<MLv0.Net.WeightType>(this._connectom.weights.length);
+                const biases = new Array<MLv0.Net.BiasType>(this._connectom.biases.length);
+
+                for (var j = 0; j < weights.length; j++)
+                {
+                    weights[j] = -10 + Math.random() * 20;
+                }
+                for (var j = 0; j < biases.length; j++)
+                {
+                    biases[j] = Math.random();
+                }
+
+                weightsGeneration[i] = new MLv0.GA.Genome<MLv0.Net.WeightType>(weights);
+                biasesGeneration[i] = new MLv0.GA.Genome<MLv0.Net.BiasType>(biases);
+            }
+        }
+
         this._weightsGeneration = new MLv0.GA.Generation<MLv0.Net.WeightType>(weightsGeneration);
         this._biasesGeneration = new MLv0.GA.Generation<MLv0.Net.BiasType>(biasesGeneration);
 
@@ -89,6 +104,7 @@ class Model implements MLv0.Core.IEvaluatable
     public async evaluate(): Promise<void>
     {
         MLv0.Utils.assert(this._weightsGeneration.genomes.length == this._biasesGeneration.genomes.length);
+        const assessmentIndex = new Map<number, { rank: number, bad: number }>();
         for (var iteration = 0; iteration < 100; iteration++)
         {
             console.log(`Generation: ${this._weightsGeneration.generation}`);
@@ -102,22 +118,18 @@ class Model implements MLv0.Core.IEvaluatable
                     continue;
                 }
 
-                const connectom = new MLv0.Net.Connectom(
-                    { size: this._sensorHeight * this._sensorWidth, transferFunction: MLv0.Core.heaviside },
-                    { size: 51, transferFunction: MLv0.Core.heaviside },
-                    { size: 31, transferFunction: MLv0.Core.heaviside },
-                    { size: 10, transferFunction: MLv0.Core.sigma });
-
+                const connectom = new MLv0.Net.Connectom(...this.population);
                 connectom.weights.setAll(weightsGenome.data);
                 connectom.biases.setAll(biasesGenome.data);
+
                 const assessment = await this.trainClassifier(connectom);
-                console.log(`Assessment: ${assessment}`);
-                weightsGenome.rank = assessment;
-                biasesGenome.rank = assessment;
+                weightsGenome.rank = assessment.good;
+                biasesGenome.rank = assessment.good;
+                assessmentIndex.set(assessment.good, { rank: assessment.rank, bad: assessment.bad });
             }
             this._weightsGeneration.evaluate((a, b) =>
             {
-                if ((Math.random() * 3) > 1.5)
+                if ((Math.random() * 100) > 70)
                 {
                     return a;
                 }
@@ -129,7 +141,7 @@ class Model implements MLv0.Core.IEvaluatable
             {
                 if ((Math.random() * 17) > 15.7)
                 {
-                    return value * (0.9 + 1.2 * Math.random());
+                    return value * (0.9 + 0.2 * Math.random());
                 }
                 else
                 {
@@ -160,31 +172,40 @@ class Model implements MLv0.Core.IEvaluatable
             const p = document.getElementById('info') as HTMLParagraphElement;
             if (p)
             {
-                p.textContent = `Best rank: ${this._weightsGeneration.genomes[0].rank}. ` +
-                    `Generation: ${this._weightsGeneration.generation}`;
+                var ranks = `Generation: ${this._weightsGeneration.generation}. Ranks: <br>`;
+                for (var genome of this._weightsGeneration.genomes)
+                {
+                    if (genome.hasRank)
+                    {
+                        const assessment = assessmentIndex.get(genome.rank)!;
+                        const good = genome.rank;
+                        const bad = assessment.bad
+                        const rank = assessment.rank;
+                        ranks += `success rate: ${good / (good + bad)} (${good}/${bad}), ${rank}<br>`;
+                    }
+                }
+                p.innerHTML = ranks;
             }
         }
+        const bestWeights = this._weightsGeneration.genomes.map(genome => genome.data);
+        const bestBiases = this._biasesGeneration.genomes.map(genome => genome.data);
+        this._connectom.weights.setAll(bestWeights[0]);
+        this._connectom.biases.setAll(bestBiases[0]);
+        localStorage.setItem(this._weightsKey, JSON.stringify(bestWeights));
+        localStorage.setItem(this._biasesKey, JSON.stringify(bestBiases));
     }
 
-    public async trainClassifier(connectom: MLv0.Net.Connectom): Promise<number>
+    public async trainClassifier(connectom: MLv0.Net.Connectom): Promise<{ rank: number, good: number, bad: number }>
     {
         MLv0.Utils.assert(this._contents);
-        var currentAssessment = 0;
+        var rank = 0;
         var sampleCount = 0;
+        var good = 0;
         for (const content of this._contents)
         {
             for (var sampleNo = 0; sampleNo < content.length; sampleNo++)
             {
-                //const t1 = Date.now();
-                const draw_scale = this._dataScale.value;
                 const sample = content.getSample(sampleNo);
-                const scaled_image = MLv0.UI.InputImage.scale(
-                    sample.bitmap,
-                    content.width,
-                    content.height,
-                    draw_scale
-                );
-
                 const sensor_scale = this._sensorWidth / content.width;
                 MLv0.Utils.assert(sensor_scale == this._sensorHeight / content.height)
                 const input_image = MLv0.UI.InputImage.scale(
@@ -195,21 +216,41 @@ class Model implements MLv0.Core.IEvaluatable
                 );
 
                 Model.getInputs(connectom).setAll(input_image.bitmap);
+                const outputs = Model.getOutputs(connectom);
                 connectom.evaluate();
-                currentAssessment += Model.fitnessFunction(Model.getOutputs(connectom), sample.value);
-                MLv0.Utils.assert(isFinite(currentAssessment));
-                MLv0.Utils.assert(!isNaN(currentAssessment));
-
-                if (((sampleCount++) % 300) == 0)
+                var assessment = Model.fitnessFunction(outputs, sample.value);
+                rank += assessment;
+                MLv0.Utils.assert(isFinite(rank));
+                MLv0.Utils.assert(!isNaN(rank));
+                if (assessment > 0)
                 {
+                    good++;
+                }
+
+                if (((sampleCount++) % 500) == 0)
+                {
+                    const draw_scale = this._dataScale.value;
+                    const scaled_image = MLv0.UI.InputImage.scale(
+                        sample.bitmap,
+                        content.width,
+                        content.height,
+                        draw_scale
+                    );
+                    const p = document.getElementById('predictedNumber') as HTMLParagraphElement;
+                    if (p)
+                    {
+                        p.textContent = `${sample.value} ${assessment > 0 ? "+" : ""}`;
+                    }
                     await this.drawOnCanvas(scaled_image);
                 }
-                this._dataScale.evaluate();
+                //this._dataScale.evaluate();
             }
         }
 
-        console.log(`Samples processed: ${sampleCount}, Current assessment: ${currentAssessment}`);
-        return currentAssessment;
+        console.log(`Samples processed: ${sampleCount}, Current assessment: ${rank}`);
+        return {
+            rank: rank, good: good, bad: sampleCount - good
+        };
     }
 
     public get inputs()
@@ -221,6 +262,13 @@ class Model implements MLv0.Core.IEvaluatable
         return Model.getOutputs(this._connectom);
     }
 
+    protected get population(): MLv0.Net.Population[]
+    {
+        return [{ size: this._sensorHeight * this._sensorWidth, transferFunction: MLv0.Core.heaviside },
+        { size: 51, transferFunction: MLv0.Core.heaviside },
+        { size: 31, transferFunction: MLv0.Core.heaviside },
+        { size: 10, transferFunction: MLv0.Core.sigma }];
+    }
     protected static getInputs(connectom: MLv0.Net.Connectom)
     {
         return connectom.layers.get(0).inputs;
@@ -248,15 +296,39 @@ class Model implements MLv0.Core.IEvaluatable
 
     protected static fitnessFunction(outputs: MLv0.Core.Subset<MLv0.Net.SignalType>, value: number): number
     {
-        var result = 0;
+        const penalty = -100000;
+        const encouraging = 15000;
+        const base = outputs.get(value);
+        var good = 0;
+        var bad = 0;
         outputs.forEachIndex((output, index) =>
         {
-            const rate = (output == 1) ? 1e-3 : (1 - output);
-            result += 1 / ((index == value) ? rate : (-rate));
+            const delta = output - base;
+            if (delta < 0)
+            {
+                good += -delta * encouraging;
+            }
+            else if (delta > 0)
+            {
+                bad += delta * penalty;
+            }
+            else if (index != value)
+            {
+                bad += outputs.length * penalty;
+            }
         });
-        return result;
+        if (bad)
+        {
+            return bad;
+        }
+        else
+        {
+            return good;
+        }
     }
 
+    private readonly _weightsKey = "{5E058927-94DF-4F82-A818-CA463E74258C}";
+    private readonly _biasesKey = "{4FBCA51B-C357-4BFC-BC38-791FFA7DEDCB}";
     private readonly _sensorHeight = 12;
     private readonly _sensorWidth = 12;
     private readonly _dataSetHeight = 28;
