@@ -68,6 +68,7 @@ class Model implements MLv0.Core.IEvaluatable
         }
         else
         {
+            const random = new  MLv0.Utils.RandomGenerator(1000);
             for (var i = 0; i < genomLength; i++)
             {
                 const weights = new Array<MLv0.Net.WeightType>(this._connectom.weights.length);
@@ -75,11 +76,11 @@ class Model implements MLv0.Core.IEvaluatable
 
                 for (var j = 0; j < weights.length; j++)
                 {
-                    weights[j] = -10 + Math.random() * 20;
+                    weights[j] = random.getValue(-10, 10);
                 }
                 for (var j = 0; j < biases.length; j++)
                 {
-                    biases[j] = Math.random();
+                    biases[j] = random.getValue(0, 1);
                 }
 
                 weightsGeneration[i] = new MLv0.GA.Genome<MLv0.Net.WeightType>(weights);
@@ -103,10 +104,21 @@ class Model implements MLv0.Core.IEvaluatable
 
     public async evaluate(): Promise<void>
     {
+
         MLv0.Utils.assert(this._weightsGeneration.genomes.length == this._biasesGeneration.genomes.length);
         const assessmentIndex = new Map<number, { rank: number, bad: number }>();
         for (var iteration = 0; iteration < 100; iteration++)
         {
+            if (!this._wakeSentinel)
+            {
+                const $this = this;
+                this._wakeSentinel = await navigator.wakeLock.request('screen');
+                this._wakeSentinel.addEventListener('release', async () =>
+                {
+                    console.info('Wake Lock was released');
+                    $this._wakeSentinel = undefined;
+                });
+            }
             console.log(`Generation: ${this._weightsGeneration.generation}`);
             for (var i = 0; i < this._weightsGeneration.genomes.length; i++)
             {
@@ -127,9 +139,11 @@ class Model implements MLv0.Core.IEvaluatable
                 biasesGenome.rank = assessment.good;
                 assessmentIndex.set(assessment.good, { rank: assessment.rank, bad: assessment.bad });
             }
+
+            const random = new MLv0.Utils.RandomGenerator(1113);
             this._weightsGeneration.evaluate((a, b) =>
             {
-                if ((Math.random() * 100) > 70)
+                if (random.getValue(0, 100) > 70)
                 {
                     return a;
                 }
@@ -139,9 +153,9 @@ class Model implements MLv0.Core.IEvaluatable
                 }
             }, (value) =>
             {
-                if ((Math.random() * 17) > 15.7)
+                if (random.getValue(0, 17) > 15.7)
                 {
-                    return value * (0.9 + 0.2 * Math.random());
+                    return value * random.getValue(0.9, 1.1);
                 }
                 else
                 {
@@ -150,7 +164,7 @@ class Model implements MLv0.Core.IEvaluatable
             });
             this._biasesGeneration.evaluate((a, b) =>
             {
-                if ((Math.random() * 3) > 1.5)
+                if (random.getValue(0, 100) > 70)
                 {
                     return a;
                 }
@@ -160,9 +174,9 @@ class Model implements MLv0.Core.IEvaluatable
                 }
             }, (value) =>
             {
-                if ((Math.random() * 17) > 15.7)
+                if (random.getValue(0, 17) > 15.7)
                 {
-                    return value * (0.9 + 1.2 * Math.random());
+                    return value * random.getValue(0.9, 1.1);
                 }
                 else
                 {
@@ -229,7 +243,7 @@ class Model implements MLv0.Core.IEvaluatable
 
                 if (((sampleCount++) % 500) == 0)
                 {
-                    const draw_scale = this._dataScale.value;
+                    const draw_scale = 1.6;//this._dataScale.value;
                     const scaled_image = MLv0.UI.InputImage.scale(
                         sample.bitmap,
                         content.width,
@@ -333,19 +347,20 @@ class Model implements MLv0.Core.IEvaluatable
     private readonly _sensorWidth = 12;
     private readonly _dataSetHeight = 28;
     private readonly _dataSetWidth = 28;
-    private readonly _dataScale = new MotionZoom(2, 1.013);
+    //private readonly _dataScale = new MotionZoom(2, 1.013);
     private readonly _canvas: HTMLCanvasElement;
     private readonly _connectom: MLv0.Net.Connectom;
     private readonly _weightsGeneration: MLv0.GA.Generation<MLv0.Net.WeightType>;
     private readonly _biasesGeneration: MLv0.GA.Generation<MLv0.Net.BiasType>;
     private _contents?: MLv0.UI.InputFile[];
+    private _wakeSentinel?: WakeLockSentinel;
 }
 
 var model: Model;
 
 window.onload = async () =>
 {
-    const canvas = document.getElementById('playArea') as HTMLCanvasElement;
-    const file = document.getElementById('localFile') as HTMLInputElement;
+    const canvas = MLv0.Utils.ensure(document.getElementById('playArea')) as HTMLCanvasElement;
+    const file = MLv0.Utils.ensure(document.getElementById('localFile')) as HTMLInputElement;
     model = new Model(canvas, file);
 };
