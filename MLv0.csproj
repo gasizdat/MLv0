@@ -69,6 +69,8 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="MLv0.Utils\random.ts" />
+    <TypeScriptCompile Include="MLv0.Utils\wake_lock.ts" />
     <TypeScriptCompile Include="tests.ts" />
     <TypeScriptCompile Include="MLv0.Core\sigma.ts" />
     <TypeScriptCompile Include="MLv0.Core\iset.ts" />
