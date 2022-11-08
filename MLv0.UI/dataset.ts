@@ -5,9 +5,9 @@ module MLv0.UI
 {
     import assert = Utils.assert;
 
-    export class InputFile
+    export class DataSet
     {
-        public static async getContents(input: HTMLInputElement): Promise<string[]>
+        public static async readFiles(input: HTMLInputElement): Promise<string[]>
         {
             const promises = new Array<Promise<string>>();
             const fileList = input.files;
@@ -48,7 +48,7 @@ module MLv0.UI
 
         constructor(content: string, width: number, height: number)
         {
-            this._lines = InputFile.trimLast(content.split("\r\n"));
+            this._lines = DataSet.trimLast(content.split("\r\n"));
             this._width = width;
             this._height = height;
 
@@ -79,7 +79,7 @@ module MLv0.UI
             for (i; i < stop; i++)
             {
                 assert(i < this._lines.length);
-                const pixels = InputFile.trimLast(this._lines[i].split(" "));
+                const pixels = DataSet.trimLast(this._lines[i].split(" "));
                 assert(pixels.length == this._width);
                 ret.bitmap.push(...pixels.map<number>(value => Number.parseFloat(value)));
             }

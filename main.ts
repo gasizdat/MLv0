@@ -3,7 +3,7 @@
 /// <reference path="MLv0.GA/generation.ts" />
 /// <reference path="MLv0.Net/connectom.ts" />
 /// <reference path="MLv0.Utils/ensure.ts" />
-/// <reference path="MLv0.UI/input_file.ts" />
+/// <reference path="MLv0.UI/dataset.ts" />
 /// <reference path="MLv0.UI/input_image.ts" />
 
 class MotionZoom
@@ -42,7 +42,7 @@ class MotionZoom
 
 class Model implements MLv0.Core.IEvaluatable
 {
-    constructor(canvas: HTMLCanvasElement, fileInput: HTMLInputElement)
+    constructor(canvas: HTMLCanvasElement, dataSetFiles: HTMLInputElement)
     {
         this._connectom = new MLv0.Net.Connectom(...this.population);
         this._canvas = canvas;
@@ -92,12 +92,12 @@ class Model implements MLv0.Core.IEvaluatable
         this._biasesGeneration = new MLv0.GA.Generation<MLv0.Net.BiasType>(biasesGeneration);
 
         const $this = this;
-        fileInput.addEventListener('change', async (_) =>
+        dataSetFiles.addEventListener('change', async (_) =>
         {
-            const contents = await MLv0.UI.InputFile.getContents(fileInput);
-            $this._contents = contents.map(content => new MLv0.UI.InputFile(content, this._dataSetWidth, this._dataSetHeight));
+            const contentList = await MLv0.UI.DataSet.readFiles(dataSetFiles);
+            $this._dataSets = contentList.map(content => new MLv0.UI.DataSet(content, this._dataSetWidth, this._dataSetHeight));
 
-            console.log($this._contents.length);
+            console.log($this._dataSets.length);
             await this.evaluate();
         });
     }
@@ -211,11 +211,11 @@ class Model implements MLv0.Core.IEvaluatable
 
     public async trainClassifier(connectom: MLv0.Net.Connectom): Promise<{ rank: number, good: number, bad: number }>
     {
-        MLv0.Utils.assert(this._contents);
+        MLv0.Utils.assert(this._dataSets);
         var rank = 0;
         var sampleCount = 0;
         var good = 0;
-        for (const content of this._contents)
+        for (const content of this._dataSets)
         {
             for (var sampleNo = 0; sampleNo < content.length; sampleNo++)
             {
@@ -352,7 +352,7 @@ class Model implements MLv0.Core.IEvaluatable
     private readonly _connectom: MLv0.Net.Connectom;
     private readonly _weightsGeneration: MLv0.GA.Generation<MLv0.Net.WeightType>;
     private readonly _biasesGeneration: MLv0.GA.Generation<MLv0.Net.BiasType>;
-    private _contents?: MLv0.UI.InputFile[];
+    private _dataSets?: MLv0.UI.DataSet[];
     private _wakeSentinel?: WakeLockSentinel;
 }
 
@@ -361,6 +361,6 @@ var model: Model;
 window.onload = async () =>
 {
     const canvas = MLv0.Utils.ensure(document.getElementById('playArea')) as HTMLCanvasElement;
-    const file = MLv0.Utils.ensure(document.getElementById('localFile')) as HTMLInputElement;
-    model = new Model(canvas, file);
+    const dataSetFiles = MLv0.Utils.ensure(document.getElementById('dataSetFiles')) as HTMLInputElement;
+    model = new Model(canvas, dataSetFiles);
 };
