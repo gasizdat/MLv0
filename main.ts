@@ -1,10 +1,11 @@
 ﻿/// <reference path="MLv0.Core/heaviside.ts" />
 /// <reference path="MLv0.Core/sigma.ts" />
 /// <reference path="MLv0.GA/generation.ts" />
+/// <reference path="MLv0.IO/dataset.ts" />
+/// <reference path="MLv0.IO/input_image.ts" />
 /// <reference path="MLv0.Net/connectom.ts" />
 /// <reference path="MLv0.Utils/ensure.ts" />
-/// <reference path="MLv0.UI/dataset.ts" />
-/// <reference path="MLv0.UI/input_image.ts" />
+
 
 class MotionZoom
 {
@@ -68,7 +69,7 @@ class Model implements MLv0.Core.IEvaluatable
         }
         else
         {
-            const random = new  MLv0.Utils.RandomGenerator(1000);
+            const random = new MLv0.Utils.RandomGenerator(1000);
             for (var i = 0; i < genomLength; i++)
             {
                 const weights = new Array<MLv0.Net.WeightType>(this._connectom.weights.length);
@@ -104,7 +105,6 @@ class Model implements MLv0.Core.IEvaluatable
 
     public async evaluate(): Promise<void>
     {
-
         MLv0.Utils.assert(this._weightsGeneration.genomes.length == this._biasesGeneration.genomes.length);
         const assessmentIndex = new Map<number, { rank: number, bad: number }>();
         for (var iteration = 0; iteration < 100; iteration++)
@@ -201,8 +201,8 @@ class Model implements MLv0.Core.IEvaluatable
                 p.innerHTML = ranks;
             }
         }
-        const bestWeights = this._weightsGeneration.genomes.map(genome => genome.data);
-        const bestBiases = this._biasesGeneration.genomes.map(genome => genome.data);
+        const bestWeights = this.currentWeights;
+        const bestBiases = this.currentBiases;
         this._connectom.weights.setAll(bestWeights[0]);
         this._connectom.biases.setAll(bestBiases[0]);
         localStorage.setItem(this._weightsKey, JSON.stringify(bestWeights));
@@ -267,6 +267,25 @@ class Model implements MLv0.Core.IEvaluatable
         };
     }
 
+    public async save(): Promise<void>
+    {
+        const opts: SaveFilePickerOptions = {
+            types: [{
+                description: 'Weights and Biases',
+                accept: { 'weights-and-biases/plain': ['.wnb'] },
+            }],
+        };
+        const file = await window.showSaveFilePicker(opts);
+        const data = {
+            weights: this.currentWeights,
+            biases: this.currentBiases
+        };
+
+        const stream = await file.createWritable();
+        await stream.write(JSON.stringify(data));
+        return stream.close();
+    }
+
     public get inputs()
     {
         return Model.getInputs(this._connectom);
@@ -282,6 +301,14 @@ class Model implements MLv0.Core.IEvaluatable
         { size: 51, transferFunction: MLv0.Core.heaviside },
         { size: 31, transferFunction: MLv0.Core.heaviside },
         { size: 10, transferFunction: MLv0.Core.sigma }];
+    }
+    protected get currentWeights(): number[][]
+    {
+        return this._weightsGeneration.genomes.map(genome => genome.data);
+    }
+    protected get currentBiases(): number[][]
+    {
+        return this._biasesGeneration.genomes.map(genome => genome.data);
     }
     protected static getInputs(connectom: MLv0.Net.Connectom)
     {
