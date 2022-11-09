@@ -1,4 +1,5 @@
-﻿
+﻿/** Interface of the File System Access API is a WritableStream object with additional convenience methods, which operates on a single file on disk. 
+ * The interface is accessed through the FileSystemFileHandle.createWritable() method. */
 interface FileSystemWritableFileStream extends WritableStream
 {
     /** Writes content into the file the method is called on, at the current file cursor offset. */

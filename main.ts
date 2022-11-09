@@ -43,7 +43,7 @@ class MotionZoom
 
 class Model implements MLv0.Core.IEvaluatable
 {
-    constructor(canvas: HTMLCanvasElement, dataSetFiles: HTMLInputElement)
+    constructor(canvas: HTMLCanvasElement)
     {
         this._connectom = new MLv0.Net.Connectom(...this.population);
         this._canvas = canvas;
@@ -91,16 +91,23 @@ class Model implements MLv0.Core.IEvaluatable
 
         this._weightsGeneration = new MLv0.GA.Generation<MLv0.Net.WeightType>(weightsGeneration);
         this._biasesGeneration = new MLv0.GA.Generation<MLv0.Net.BiasType>(biasesGeneration);
+    }
 
-        const $this = this;
-        dataSetFiles.addEventListener('change', async (_) =>
-        {
-            const contentList = await MLv0.UI.DataSet.readFiles(dataSetFiles);
-            $this._dataSets = contentList.map(content => new MLv0.UI.DataSet(content, this._dataSetWidth, this._dataSetHeight));
+    public async loadAndEvaluate(): Promise<void>
+    {
+        const openOptions: OpenFilePickerOptions = {
+            types: [{
+                description: 'Tagged dataset',
+                accept: { 'text/plain': ['.txt'] },
+            }],
+        };
+        const dataFiles = window.showOpenFilePicker(openOptions);
+        const contentList = await MLv0.UI.DataSet.readFiles(await dataFiles);
 
-            console.log($this._dataSets.length);
-            await this.evaluate();
-        });
+        this._dataSets = contentList.map(content => new MLv0.UI.DataSet(content, this._dataSetWidth, this._dataSetHeight));
+
+        console.log(this._dataSets.length);
+        return this.evaluate();
     }
 
     public async evaluate(): Promise<void>
@@ -111,13 +118,17 @@ class Model implements MLv0.Core.IEvaluatable
         {
             if (!this._wakeSentinel)
             {
-                const $this = this;
-                this._wakeSentinel = await navigator.wakeLock.request('screen');
-                this._wakeSentinel.addEventListener('release', async () =>
+                try
                 {
-                    console.info('Wake Lock was released');
-                    $this._wakeSentinel = undefined;
-                });
+                    const $this = this;
+                    this._wakeSentinel = await navigator.wakeLock.request('screen');
+                    this._wakeSentinel.addEventListener('release', async () =>
+                    {
+                        console.info('Wake Lock was released');
+                        $this._wakeSentinel = undefined;
+                    });
+                }
+                catch { }
             }
             console.log(`Generation: ${this._weightsGeneration.generation}`);
             for (var i = 0; i < this._weightsGeneration.genomes.length; i++)
@@ -269,13 +280,13 @@ class Model implements MLv0.Core.IEvaluatable
 
     public async save(): Promise<void>
     {
-        const opts: SaveFilePickerOptions = {
+        const saveOptions: SaveFilePickerOptions = {
             types: [{
                 description: 'Weights and Biases',
                 accept: { 'weights-and-biases/plain': ['.wnb'] },
             }],
         };
-        const file = await window.showSaveFilePicker(opts);
+        const file = await window.showSaveFilePicker(saveOptions);
         const data = {
             weights: this.currentWeights,
             biases: this.currentBiases
@@ -388,6 +399,5 @@ var model: Model;
 window.onload = async () =>
 {
     const canvas = MLv0.Utils.ensure(document.getElementById('playArea')) as HTMLCanvasElement;
-    const dataSetFiles = MLv0.Utils.ensure(document.getElementById('dataSetFiles')) as HTMLInputElement;
-    model = new Model(canvas, dataSetFiles);
+    model = new Model(canvas);
 };

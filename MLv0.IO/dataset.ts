@@ -7,43 +7,15 @@ module MLv0.UI
 
     export class DataSet
     {
-        public static async readFiles(input: HTMLInputElement): Promise<string[]>
+        public static async readFiles(dataFiles: Array<FileSystemFileHandle>): Promise<string[]>
         {
-            const promises = new Array<Promise<string>>();
-            const fileList = input.files;
-            if (fileList)
+            var reads = dataFiles.map(async (dataFile) =>
             {
-                for (var i = 0; i < fileList.length; i++)
-                {
-                    const file = fileList[i];
-                    const reader = new FileReader();
-                    const blob = new Promise<string>((resolve, reject) =>
-                    {
-                        reader.onload = () => resolve(reader.result as string);
-                        reader.onerror = () => reject(new Error(`Unable to read file: ${file.name}`));
-                        reader.onprogress = (event) =>
-                        {
-                            if (event.loaded && event.total)
-                            {
-                                const percent = (event.loaded / event.total) * 100;
-                                console.log(`Progress: ${Math.round(percent)}`);
-                            }
-                        };
-                    });
+                const file = await dataFile.getFile();
+                return file.text();
+            });
 
-                    reader.readAsText(file);
-
-                    promises.push(blob);
-                }
-            }
-
-            const ret = new Array<string>();
-            for (var promise of promises)
-            {
-                ret.push(await promise);
-            }
-
-            return ret;
+            return Promise.all(await reads);
         }
 
         constructor(content: string, width: number, height: number)

@@ -15,14 +15,11 @@
                 </p>
                 <p id="predictedNumber">?</p>
                 <p><input type="button" value="Evaluate" onclick="model.evaluate()" /></p>
-                <p><input type="button" value="Open dataset..." onclick="document.getElementById('dataSetFiles').click();"/> </p>
-                <p><input type="button" value="Open weights..." onclick="document.getElementById('weightsFiles').click();"/> </p>
+                <p><input type="button" value="Open dataset..." onclick="model.loadAndEvaluate();"/> </p>
                 <p><input type="button" value="Save..." onclick="model.save()" /></p>
             </td>
             <td><p id="info"></p></td>
         </tr>
     </table>
-    <input type="file" style="display:none;" id="dataSetFiles" multiple />
-    <input type="file" style="display:none;" id="weightsFiles" />
 </body>
 </html>
