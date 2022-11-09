@@ -22,6 +22,25 @@ module MLv0.GA
         public evaluate(cross_function: (a: TData, b: TData) => TData, mutagen: (data: TData) => TData): void
         {
             this.genomes.sort((a, b) => b.rank - a.rank);
+            var lastRank: number | null;
+            var needResorting = false;
+            this.genomes.forEach(genome =>
+            {
+                if (genome.rank == lastRank)
+                {
+                    genome.rank = -Infinity;
+                    needResorting = true;
+                }
+                else
+                {
+                    lastRank = genome.rank;
+                }
+            });
+            if (needResorting)
+            {
+                this.genomes.sort((a, b) => b.rank - a.rank);
+            }
+
             const startIndex = this.genomes.length / 2;
             for (var i = startIndex; i < this.genomes.length; i++)
             {
