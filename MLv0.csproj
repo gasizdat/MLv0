@@ -69,8 +69,12 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="MLv0.IO\file_system_file_handler.ts" />
     <TypeScriptCompile Include="MLv0.Utils\random.ts" />
-    <TypeScriptCompile Include="MLv0.Utils\wake_lock.ts" />
+    <TypeScriptCompile Include="MLv0.IO\open_file_picker.ts" />
+    <TypeScriptCompile Include="MLv0.IO\allowed_file_type.ts" />
+    <TypeScriptCompile Include="MLv0.IO\save_file_picker.ts" />
+    <TypeScriptCompile Include="MLv0.IO\wake_lock.ts" />
     <TypeScriptCompile Include="tests.ts" />
     <TypeScriptCompile Include="MLv0.Core\sigma.ts" />
     <TypeScriptCompile Include="MLv0.Core\iset.ts" />
@@ -81,8 +85,8 @@
     <TypeScriptCompile Include="MLv0.Net\connectom.ts" />
     <TypeScriptCompile Include="MLv0.Net\layer.ts" />
     <TypeScriptCompile Include="MLv0.Net\types.ts" />
-    <TypeScriptCompile Include="MLv0.UI\dataset.ts" />
-    <TypeScriptCompile Include="MLv0.UI\input_image.ts" />
+    <TypeScriptCompile Include="MLv0.IO\dataset.ts" />
+    <TypeScriptCompile Include="MLv0.IO\input_image.ts" />
     <TypeScriptCompile Include="MLv0.Utils\ensure.ts" />
     <TypeScriptCompile Include="MLv0.Utils\to_int.ts" />
     <TypeScriptCompile Include="MLv0.Utils\range.ts" />

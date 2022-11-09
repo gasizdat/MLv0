@@ -1,10 +1,5 @@
-﻿/// <reference path="MLv0.Core/heaviside.ts" />
-/// <reference path="MLv0.Core/sigma.ts" />
-/// <reference path="MLv0.GA/generation.ts" />
-/// <reference path="MLv0.Net/connectom.ts" />
-/// <reference path="MLv0.Utils/ensure.ts" />
-/// <reference path="MLv0.UI/input_file.ts" />
-/// <reference path="MLv0.UI/input_image.ts" />
+﻿/// <reference path="MLv0.GA/generation.ts" />
+/// <reference path="MLv0.GA/genome.ts" />
 
 class Tests
 {
