@@ -152,48 +152,8 @@ class Model implements MLv0.Core.IEvaluatable
             }
 
             const random = new MLv0.Utils.RandomGenerator(1113);
-            this._weightsGeneration.evaluate((a, b) =>
-            {
-                if (random.getValue(0, 100) > 70)
-                {
-                    return a;
-                }
-                else
-                {
-                    return b;
-                }
-            }, (value) =>
-            {
-                if (random.getValue(0, 17) > 15.7)
-                {
-                    return value * random.getValue(0.9, 1.1);
-                }
-                else
-                {
-                    return value;
-                }
-            });
-            this._biasesGeneration.evaluate((a, b) =>
-            {
-                if (random.getValue(0, 100) > 70)
-                {
-                    return a;
-                }
-                else
-                {
-                    return b;
-                }
-            }, (value) =>
-            {
-                if (random.getValue(0, 17) > 15.7)
-                {
-                    return value * random.getValue(0.9, 1.1);
-                }
-                else
-                {
-                    return value;
-                }
-            });
+            this._weightsGeneration.evaluate((a, b) => Model.crossFunction(a, b, random), (value) => Model.mutagen(value, random));
+            this._biasesGeneration.evaluate((a, b) => Model.crossFunction(a, b, random), (value) => Model.mutagen(value, random));
             const p = document.getElementById('info') as HTMLParagraphElement;
             if (p)
             {
@@ -228,7 +188,8 @@ class Model implements MLv0.Core.IEvaluatable
         var good = 0;
         for (const content of this._dataSets)
         {
-            for (var sampleNo = 0; sampleNo < content.length; sampleNo++)
+            const step = 1;//MLv0.Utils.toInt((new MLv0.Utils.RandomGenerator).getValue(3, 11));
+            for (var sampleNo = 0; sampleNo < content.length; sampleNo += step)
             {
                 const sample = content.getSample(sampleNo);
                 const sensor_scale = this._sensorWidth / content.width;
@@ -328,6 +289,32 @@ class Model implements MLv0.Core.IEvaluatable
     protected static getOutputs(connectom: MLv0.Net.Connectom)
     {
         return connectom.layers.get(connectom.layers.length - 1).outputs;
+    } protected static crossFunction(a: number, b: number, random: MLv0.Utils.RandomGenerator): number
+    {
+        if (random.getValue(0, 100) > 70)
+        {
+            return a;
+        }
+        else
+        {
+            return b;
+        }
+    }
+    protected static mutagen(value: number, random: MLv0.Utils.RandomGenerator): number
+    {
+        const chance = random.getValue(0, 17);
+        if (chance > 16.7)
+        {
+            return value * random.getValue(0.5, 1.5);
+        }
+        else if (chance > 15.7)
+        {
+            return value * random.getValue(0.9, 1.1);
+        }
+        else 
+        {
+            return value;
+        }
     }
     protected async drawOnCanvas(scaled_image: { bitmap: number[], width: number, height: number }): Promise<void>
     {
