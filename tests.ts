@@ -24,9 +24,10 @@ class Tests
         generation.genomes[1].rank = 5;
         generation.genomes[0].rank = 2;
 
+        const random = new MLv0.Utils.RandomGenerator();
         const new_generation = generation.evaluate((a, b) =>
         {
-            if ((Math.random() * 3) > 1.5)
+            if (random.getValue(0, 3) > 1.5)
             {
                 return a;
             }
@@ -36,7 +37,7 @@ class Tests
             }
         }, (value) =>
         {
-            if ((Math.random() * 17) > 15.7)
+            if (random.getValue(0, 17) > 15.7)
             {
                 return value += "m";
             }
@@ -44,7 +45,7 @@ class Tests
             {
                 return value;
             }
-        });
+        }, random);
         console.log(new_generation);
     }
 }

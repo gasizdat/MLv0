@@ -113,7 +113,6 @@ class Model implements MLv0.Core.IEvaluatable
     public async evaluate(): Promise<void>
     {
         MLv0.Utils.assert(this._weightsGeneration.genomes.length == this._biasesGeneration.genomes.length);
-        const assessmentIndex = new Map<number, { rank: number, bad: number }>();
         for (var iteration = 0; iteration < 100; iteration++)
         {
             if (!this._wakeSentinel)
@@ -146,30 +145,17 @@ class Model implements MLv0.Core.IEvaluatable
                 connectom.biases.setAll(biasesGenome.data);
 
                 const assessment = await this.trainClassifier(connectom);
-                weightsGenome.rank = assessment.good;
-                biasesGenome.rank = assessment.good;
-                assessmentIndex.set(assessment.good, { rank: assessment.rank, bad: assessment.bad });
+                weightsGenome.rank = assessment.assesment;
+                biasesGenome.rank = assessment.assesment;
             }
 
             const random = new MLv0.Utils.RandomGenerator(1113);
-            this._weightsGeneration.evaluate((a, b) => Model.crossFunction(a, b, random), (value) => Model.mutagen(value, random));
-            this._biasesGeneration.evaluate((a, b) => Model.crossFunction(a, b, random), (value) => Model.mutagen(value, random));
+            this._weightsGeneration.evaluate((a, b) => Model.crossFunction(a, b, random), (value) => Model.mutagen(value, random), random);
+            this._biasesGeneration.evaluate((a, b) => Model.crossFunction(a, b, random), (value) => Model.mutagen(value, random), random);
             const p = document.getElementById('info') as HTMLParagraphElement;
             if (p)
             {
-                var ranks = `Generation: ${this._weightsGeneration.generation}. Ranks: <br>`;
-                for (var genome of this._weightsGeneration.genomes)
-                {
-                    if (genome.hasRank)
-                    {
-                        const assessment = assessmentIndex.get(genome.rank)!;
-                        const good = genome.rank;
-                        const bad = assessment.bad
-                        const rank = assessment.rank;
-                        ranks += `success rate: ${good / (good + bad)} (${good}/${bad}), ${rank}<br>`;
-                    }
-                }
-                p.innerHTML = ranks;
+                p.innerHTML = Model.printBestAssesments(this._weightsGeneration);
             }
         }
         const bestWeights = this.currentWeights;
@@ -180,12 +166,11 @@ class Model implements MLv0.Core.IEvaluatable
         localStorage.setItem(this._biasesKey, JSON.stringify(bestBiases));
     }
 
-    public async trainClassifier(connectom: MLv0.Net.Connectom): Promise<{ rank: number, good: number, bad: number }>
+    public async trainClassifier(connectom: MLv0.Net.Connectom): Promise<{ assesment: number, samplesCount: number }>
     {
         MLv0.Utils.assert(this._dataSets);
-        var rank = 0;
         var sampleCount = 0;
-        var good = 0;
+        var rightPredicted = 0;
         for (const content of this._dataSets)
         {
             const step = 1;//MLv0.Utils.toInt((new MLv0.Utils.RandomGenerator).getValue(3, 11));
@@ -204,13 +189,15 @@ class Model implements MLv0.Core.IEvaluatable
                 Model.getInputs(connectom).setAll(input_image.bitmap);
                 const outputs = Model.getOutputs(connectom);
                 connectom.evaluate();
-                var assessment = Model.fitnessFunction(outputs, sample.value);
-                rank += assessment;
-                MLv0.Utils.assert(isFinite(rank));
-                MLv0.Utils.assert(!isNaN(rank));
-                if (assessment > 0)
+
+                const predictedValue = Model.predictedValue(outputs);
+                if (predictedValue == sample.value)
                 {
-                    good++;
+                    rightPredicted++;
+                }
+                else if (predictedValue === undefined && rightPredicted >= 10)
+                {
+                    rightPredicted -= 10;
                 }
 
                 if (((sampleCount++) % 500) == 0)
@@ -225,7 +212,7 @@ class Model implements MLv0.Core.IEvaluatable
                     const p = document.getElementById('predictedNumber') as HTMLParagraphElement;
                     if (p)
                     {
-                        p.textContent = `${sample.value} ${assessment > 0 ? "+" : ""}`;
+                        p.textContent = `${sample.value} ${predictedValue == sample.value ? "+" : ""}`;
                     }
                     await this.drawOnCanvas(scaled_image);
                 }
@@ -233,9 +220,10 @@ class Model implements MLv0.Core.IEvaluatable
             }
         }
 
-        console.log(`Samples processed: ${sampleCount}, Current assessment: ${rank}`);
+        const assesment = (rightPredicted * 100) / sampleCount;
+        console.log(`Samples processed: ${sampleCount}, Current assessment: ${assesment}%`);
         return {
-            rank: rank, good: good, bad: sampleCount - good
+            assesment: assesment, samplesCount: sampleCount
         };
     }
 
@@ -282,40 +270,6 @@ class Model implements MLv0.Core.IEvaluatable
     {
         return this._biasesGeneration.genomes.map(genome => genome.data);
     }
-    protected static getInputs(connectom: MLv0.Net.Connectom)
-    {
-        return connectom.layers.get(0).inputs;
-    }
-    protected static getOutputs(connectom: MLv0.Net.Connectom)
-    {
-        return connectom.layers.get(connectom.layers.length - 1).outputs;
-    } protected static crossFunction(a: number, b: number, random: MLv0.Utils.RandomGenerator): number
-    {
-        if (random.getValue(0, 100) > 70)
-        {
-            return a;
-        }
-        else
-        {
-            return b;
-        }
-    }
-    protected static mutagen(value: number, random: MLv0.Utils.RandomGenerator): number
-    {
-        const chance = random.getValue(0, 17);
-        if (chance > 16.7)
-        {
-            return value * random.getValue(0.5, 1.5);
-        }
-        else if (chance > 15.7)
-        {
-            return value * random.getValue(0.9, 1.1);
-        }
-        else 
-        {
-            return value;
-        }
-    }
     protected async drawOnCanvas(scaled_image: { bitmap: number[], width: number, height: number }): Promise<void>
     {
         const canvas = this._canvas;
@@ -332,38 +286,71 @@ class Model implements MLv0.Core.IEvaluatable
         //reschedule other async function invocations
         return new Promise(f => setTimeout(f, 0));
     }
-
-    protected static fitnessFunction(outputs: MLv0.Core.Subset<MLv0.Net.SignalType>, value: number): number
+    protected static getInputs(connectom: MLv0.Net.Connectom)
     {
-        const penalty = -100000;
-        const encouraging = 15000;
-        const base = outputs.get(value);
-        var good = 0;
-        var bad = 0;
-        outputs.forEachIndex((output, index) =>
+        return connectom.layers.get(0).inputs;
+    }
+    protected static getOutputs(connectom: MLv0.Net.Connectom)
+    {
+        return connectom.layers.get(connectom.layers.length - 1).outputs;
+    }
+    protected static crossFunction(a: number, b: number, random: MLv0.Utils.RandomGenerator): number
+    {
+        if (random.getValue(0, 100) > 15)
         {
-            const delta = output - base;
-            if (delta < 0)
-            {
-                good += -delta * encouraging;
-            }
-            else if (delta > 0)
-            {
-                bad += delta * penalty;
-            }
-            else if (index != value)
-            {
-                bad += outputs.length * penalty;
-            }
-        });
-        if (bad)
-        {
-            return bad;
+            return a;
         }
         else
         {
-            return good;
+            return b;
         }
+    }
+    protected static mutagen(value: number, random: MLv0.Utils.RandomGenerator): number
+    {
+        const chance = random.getValue(0, 100);
+        if (chance > 98.9)
+        {
+            return value * random.getValue(0.5, 1.5);
+        }
+        else if (chance >= 95)
+        {
+            return value * random.getValue(0.9, 1.1);
+        }
+        else 
+        {
+            return value;
+        }
+    }
+    protected static predictedValue(outputs: MLv0.Core.Subset<MLv0.Net.SignalType>): number | undefined
+    {
+        var value;
+        var maxOutput = -Infinity;
+        outputs.forEachIndex((output, index) =>
+        {
+            if (maxOutput < output)
+            {
+                value = index;
+                maxOutput = output;
+            }
+            else if (maxOutput == output)
+            {
+                value = null;
+            }
+        });
+
+        return value;
+    }
+    protected static printBestAssesments(generation: MLv0.GA.Generation<number>): string
+    {
+        var ranks = `Generation: ${generation.generation}. Ranks: <br>`;
+        for (var genome of generation.genomes)
+        {
+            if (genome.hasRank)
+            {
+                ranks += `success rate: ${genome.rank} <br>`;
+            }
+        }
+        return ranks;
     }
 
     private readonly _weightsKey = "{5E058927-94DF-4F82-A818-CA463E74258C}";
