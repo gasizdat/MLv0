@@ -19,7 +19,7 @@ module MLv0.GA
         {
             return this._generation;
         }
-        public evaluate(cross_function: (a: TData, b: TData) => TData, mutagen: (data: TData) => TData): void
+        public evaluate(cross_function: (a: TData, b: TData) => TData, mutagen: (data: TData) => TData, random: MLv0.Utils.RandomGenerator): void
         {
             this.genomes.sort((a, b) => b.rank - a.rank);
             var lastRank: number | null;
@@ -45,7 +45,7 @@ module MLv0.GA
             for (var i = startIndex; i < this.genomes.length; i++)
             {
                 const firstParent = i - startIndex;
-                const secondParent = Math.min(Math.trunc(Math.random() * this.genomes.length), this.genomes.length - 1);
+                const secondParent = Math.trunc(random.getValue(startIndex, this.genomes.length - 1));
                 const g1 = this.genomes[firstParent];
                 const g2 = this.genomes[secondParent];
                 Utils.assert(g1.length == g2.length)
