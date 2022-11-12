@@ -45,48 +45,51 @@ class Model implements MLv0.Core.IEvaluatable
 {
     constructor(canvas: HTMLCanvasElement)
     {
-        this._connectom = new MLv0.Net.Connectom(...this.population);
         this._canvas = canvas;
 
-        const genomLength = 20;
-        var weightsGeneration = new Array<MLv0.GA.Genome<MLv0.Net.WeightType>>(genomLength);
-        var biasesGeneration = new Array<MLv0.GA.Genome<MLv0.Net.BiasType>>(genomLength);
-
-        const storedWeights = localStorage.getItem(this._weightsKey);
-        const storedBiases = localStorage.getItem(this._biasesKey);
-        if (storedWeights && storedBiases)
+        try
         {
-            const weightGenomes = JSON.parse(storedWeights) as number[][];
-            const biaseGenomes = JSON.parse(storedBiases) as number[][];
-            if (weightGenomes.length == genomLength &&
-                biaseGenomes.length == genomLength &&
-                weightGenomes[0].length == this._connectom.weights.length &&
-                biaseGenomes[0].length == this._connectom.biases.length)
+            const quickSaveData = localStorage.getItem(this._quickSaveKey);
+            if (quickSaveData)
             {
-                weightsGeneration = weightGenomes.map(genome => new MLv0.GA.Genome<MLv0.Net.WeightType>(genome));
-                biasesGeneration = biaseGenomes.map(genome => new MLv0.GA.Genome<MLv0.Net.BiasType>(genome));
+                this.openImpl(quickSaveData);
+                return;
             }
         }
-        else
+        catch (error)
         {
-            const random = new MLv0.Utils.RandomGenerator(1000);
-            for (var i = 0; i < genomLength; i++)
+            alert(`Unable to restore qiuck saved data. Default settings are used. ${error}`);
+        }
+
+        const genomLength = 20;
+        const weightsGeneration = new Array<MLv0.GA.Genome<MLv0.Net.WeightType>>(genomLength);
+        const biasesGeneration = new Array<MLv0.GA.Genome<MLv0.Net.BiasType>>(genomLength);
+
+        this._population = [
+            { size: this._sensorHeight * this._sensorWidth, transferFunction: MLv0.Core.heaviside },
+            { size: 51, transferFunction: MLv0.Core.heaviside },
+            { size: 31, transferFunction: MLv0.Core.heaviside },
+            { size: 10, transferFunction: MLv0.Core.sigma }
+        ];
+        this._connectom = new MLv0.Net.Connectom(...this._population);
+
+        const random = new MLv0.Utils.RandomGenerator(1000);
+        for (var i = 0; i < genomLength; i++)
+        {
+            const weights = new Array<MLv0.Net.WeightType>(this._connectom.weights.length);
+            const biases = new Array<MLv0.Net.BiasType>(this._connectom.biases.length);
+
+            for (var j = 0; j < weights.length; j++)
             {
-                const weights = new Array<MLv0.Net.WeightType>(this._connectom.weights.length);
-                const biases = new Array<MLv0.Net.BiasType>(this._connectom.biases.length);
-
-                for (var j = 0; j < weights.length; j++)
-                {
-                    weights[j] = random.getValue(-10, 10);
-                }
-                for (var j = 0; j < biases.length; j++)
-                {
-                    biases[j] = random.getValue(0, 1);
-                }
-
-                weightsGeneration[i] = new MLv0.GA.Genome<MLv0.Net.WeightType>(weights);
-                biasesGeneration[i] = new MLv0.GA.Genome<MLv0.Net.BiasType>(biases);
+                weights[j] = random.getValue(-10, 10);
             }
+            for (var j = 0; j < biases.length; j++)
+            {
+                biases[j] = random.getValue(0, 1);
+            }
+
+            weightsGeneration[i] = new MLv0.GA.Genome<MLv0.Net.WeightType>(weights);
+            biasesGeneration[i] = new MLv0.GA.Genome<MLv0.Net.BiasType>(biases);
         }
 
         this._weightsGeneration = new MLv0.GA.Generation<MLv0.Net.WeightType>(weightsGeneration);
@@ -112,6 +115,10 @@ class Model implements MLv0.Core.IEvaluatable
 
     public async evaluate(): Promise<void>
     {
+        MLv0.Utils.assert(this._population);
+        MLv0.Utils.assert(this._weightsGeneration);
+        MLv0.Utils.assert(this._biasesGeneration);
+        MLv0.Utils.assert(this._connectom);
         MLv0.Utils.assert(this._weightsGeneration.genomes.length == this._biasesGeneration.genomes.length);
         for (var iteration = 0; iteration < 100; iteration++)
         {
@@ -140,7 +147,7 @@ class Model implements MLv0.Core.IEvaluatable
                     continue;
                 }
 
-                const connectom = new MLv0.Net.Connectom(...this.population);
+                const connectom = new MLv0.Net.Connectom(...this._population);
                 connectom.weights.setAll(weightsGenome.data);
                 connectom.biases.setAll(biasesGenome.data);
 
@@ -162,8 +169,7 @@ class Model implements MLv0.Core.IEvaluatable
         const bestBiases = this.currentBiases;
         this._connectom.weights.setAll(bestWeights[0]);
         this._connectom.biases.setAll(bestBiases[0]);
-        localStorage.setItem(this._weightsKey, JSON.stringify(bestWeights));
-        localStorage.setItem(this._biasesKey, JSON.stringify(bestBiases));
+        localStorage.setItem(this._quickSaveKey, this.saveImp());
     }
 
     public async trainClassifier(connectom: MLv0.Net.Connectom): Promise<{ assesment: number, samplesCount: number }>
@@ -236,10 +242,68 @@ class Model implements MLv0.Core.IEvaluatable
             }],
         };
         const file = await window.showSaveFilePicker(saveOptions);
-        const data = { version: 1.0, population: this.population, weights: this.currentWeights, biases: this.currentBiases };
-        const stream = await file.createWritable();
+        try
+        {
+            const stream = await file.createWritable();
+            await stream.write(this.saveImp());
+            return stream.close();
+        }
+        catch (error)
+        {
+            alert(error);
+        }
+    }
+    public async open(): Promise<void>
+    {
+        const openOptions: OpenFilePickerOptions = {
+            types: [{
+                description: 'Weights and Biases',
+                accept: { 'weights-and-biases/plain': ['.wnb'] },
+            }],
+            multiple: false
+        };
+        const files = await window.showOpenFilePicker(openOptions);
+        try
+        {
+            if (files.length != 1)
+            {
+                throw new Error(`Unable to open file`);
+            }
+            const file = await files[0].getFile();
+            this.openImpl(await file.text());
+        }
+        catch (error)
+        {
+            alert(error);
+        }
+    }
 
-        await stream.write(JSON.stringify(data, (key: string, value: any) =>
+    public get inputs()
+    {
+        MLv0.Utils.assert(this._connectom);
+        return Model.getInputs(this._connectom);
+    }
+    public get outputs()
+    {
+        MLv0.Utils.assert(this._connectom);
+        return Model.getOutputs(this._connectom);
+    }
+
+    protected get currentWeights(): number[][]
+    {
+        MLv0.Utils.assert(this._weightsGeneration);
+        return this._weightsGeneration.genomes.map(genome => genome.data);
+    }
+    protected get currentBiases(): number[][]
+    {
+        MLv0.Utils.assert(this._biasesGeneration);
+        return this._biasesGeneration.genomes.map(genome => genome.data);
+    }
+    protected saveImp(): string
+    {
+        const data = { version: 1.0, population: this._population, weights: this.currentWeights, biases: this.currentBiases };
+
+        return JSON.stringify(data, (key: string, value: any) =>
         {
             if (key == "transferFunction")
             {
@@ -254,33 +318,63 @@ class Model implements MLv0.Core.IEvaluatable
                 }
             }
             return value;
-        }));
-        return stream.close();
+        });
     }
+    protected openImpl(textData: string): void
+    {
+        const data = JSON.parse(textData, (key: string, value: any) =>
+        {
+            if (key == "transferFunction")
+            {
+                switch (value)
+                {
+                    case "HVS":
+                        return MLv0.Core.heaviside;
+                    case "SGM":
+                        return MLv0.Core.sigma;
+                    default:
+                        throw new Error(`Unsupported trunsfer function [${value}]`);
+                }
+            }
+            return value;
+        });
 
-    public get inputs()
-    {
-        return Model.getInputs(this._connectom);
-    }
-    public get outputs()
-    {
-        return Model.getOutputs(this._connectom);
-    }
+        if (data.version != 1)
+        {
+            throw new Error(`Unsupported data version [${data.version}]`);
+        }
+        else if (data.population.length < 2)
+        {
+            throw new Error(`Unsupported length of population [${data.population.length}]`);
+        }
 
-    protected get population(): MLv0.Net.Population[]
-    {
-        return [{ size: this._sensorHeight * this._sensorWidth, transferFunction: MLv0.Core.heaviside },
-        { size: 51, transferFunction: MLv0.Core.heaviside },
-        { size: 31, transferFunction: MLv0.Core.heaviside },
-        { size: 10, transferFunction: MLv0.Core.sigma }];
-    }
-    protected get currentWeights(): number[][]
-    {
-        return this._weightsGeneration.genomes.map(genome => genome.data);
-    }
-    protected get currentBiases(): number[][]
-    {
-        return this._biasesGeneration.genomes.map(genome => genome.data);
+        const connectom = new MLv0.Net.Connectom(...data.population);
+        const weightsGeneration = (data.weights as number[][]).map(genome => new MLv0.GA.Genome<MLv0.Net.WeightType>(genome));
+        const biasesGeneration = (data.biases as number[][]).map(genome => new MLv0.GA.Genome<MLv0.Net.BiasType>(genome));
+        if (weightsGeneration.length != biasesGeneration.length)
+        {
+            throw new Error(`Weights genome doesn't matched to the biases genome`);
+        }
+        else if (weightsGeneration.length < 10)
+        {
+            throw new Error(`Weights and biases generations too small: [${weightsGeneration.length}]`);
+        }
+        else if (connectom.weights.length != weightsGeneration[0].length)
+        {
+            throw new Error(`Weights genome doesn't matched to the connectome`);
+        }
+        else if (connectom.biases.length != biasesGeneration[0].length)
+        {
+            throw new Error(`Biases genome doesn't matched to the connectome`);
+        }
+
+        connectom.weights.setAll(weightsGeneration[0].data);
+        connectom.biases.setAll(biasesGeneration[0].data);
+
+        this._population = data.population;
+        this._connectom = connectom;
+        this._weightsGeneration = new MLv0.GA.Generation<MLv0.Net.WeightType>(weightsGeneration);
+        this._biasesGeneration = new MLv0.GA.Generation<MLv0.Net.BiasType>(biasesGeneration);
     }
     protected async drawOnCanvas(scaled_image: { bitmap: number[], width: number, height: number }): Promise<void>
     {
@@ -365,17 +459,17 @@ class Model implements MLv0.Core.IEvaluatable
         return ranks;
     }
 
-    private readonly _weightsKey = "{5E058927-94DF-4F82-A818-CA463E74258C}";
-    private readonly _biasesKey = "{4FBCA51B-C357-4BFC-BC38-791FFA7DEDCB}";
+    private readonly _quickSaveKey = "{13F737A7-B005-4806-BBAA-923DF9689566}";
     private readonly _sensorHeight = 12;
     private readonly _sensorWidth = 12;
     private readonly _dataSetHeight = 28;
     private readonly _dataSetWidth = 28;
     //private readonly _dataScale = new MotionZoom(2, 1.013);
     private readonly _canvas: HTMLCanvasElement;
-    private readonly _connectom: MLv0.Net.Connectom;
-    private readonly _weightsGeneration: MLv0.GA.Generation<MLv0.Net.WeightType>;
-    private readonly _biasesGeneration: MLv0.GA.Generation<MLv0.Net.BiasType>;
+    private _weightsGeneration?: MLv0.GA.Generation<MLv0.Net.WeightType>;
+    private _biasesGeneration?: MLv0.GA.Generation<MLv0.Net.BiasType>;
+    private _connectom?: MLv0.Net.Connectom;
+    private _population?: MLv0.Net.Population[];
     private _dataSets?: MLv0.UI.DataSet[];
     private _wakeSentinel?: WakeLockSentinel;
 }
