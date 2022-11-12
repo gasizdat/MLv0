@@ -236,13 +236,25 @@ class Model implements MLv0.Core.IEvaluatable
             }],
         };
         const file = await window.showSaveFilePicker(saveOptions);
-        const data = {
-            weights: this.currentWeights,
-            biases: this.currentBiases
-        };
-
+        const data = { version: 1.0, population: this.population, weights: this.currentWeights, biases: this.currentBiases };
         const stream = await file.createWritable();
-        await stream.write(JSON.stringify(data));
+
+        await stream.write(JSON.stringify(data, (key: string, value: any) =>
+        {
+            if (key == "transferFunction")
+            {
+                switch (value)
+                {
+                    case MLv0.Core.heaviside:
+                        return "HVS";
+                    case MLv0.Core.sigma:
+                        return "SGM";
+                    default:
+                        MLv0.Utils.assert(false);
+                }
+            }
+            return value;
+        }));
         return stream.close();
     }
 
