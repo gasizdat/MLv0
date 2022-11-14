@@ -41,6 +41,8 @@ class MotionZoom
     private _currentValue: number;
 }
 
+type SampleInfo = { bitmap: number[], value: number, originalImage?: { bitmap: number[], width: number, height: number } };
+
 class Model implements MLv0.Core.IEvaluatable
 {
     constructor(canvas: HTMLCanvasElement)
@@ -107,9 +109,42 @@ class Model implements MLv0.Core.IEvaluatable
         const dataFiles = window.showOpenFilePicker(openOptions);
         const contentList = await MLv0.UI.DataSet.readFiles(await dataFiles);
 
-        this._dataSets = contentList.map(content => new MLv0.UI.DataSet(content, this._dataSetWidth, this._dataSetHeight));
+        this._samples = contentList.map(content =>
+        {
+            const data = new MLv0.UI.DataSet(content, this._dataSetWidth, this._dataSetHeight);
+            const sensorScale = this._sensorWidth / data.width;
+            MLv0.Utils.assert(sensorScale == this._sensorHeight / data.height)
+            const bitmaps: SampleInfo[] = [];
+            for (var sampleNo = 0; sampleNo < data.length; sampleNo++)
+            {
+                const sample = data.getSample(sampleNo);
+                const inputImage = MLv0.UI.InputImage.scale(
+                    sample.bitmap,
+                    data.width,
+                    data.height,
+                    sensorScale
+                );
+                if (sampleNo % 671 == 0)
+                {
+                    bitmaps.push({
+                        bitmap: inputImage.bitmap,
+                        value: sample.value,
+                        originalImage: {
+                            bitmap: sample.bitmap,
+                            width: data.width,
+                            height: data.height
+                        }
+                    });
+                }
+                else
+                {
+                    bitmaps.push({ bitmap: inputImage.bitmap, value: sample.value });
+                }
+            }
+            return bitmaps;
+        }).flat();
 
-        console.log(this._dataSets.length);
+        console.log(this._samples.length);
         return this.evaluate();
     }
 
@@ -170,66 +205,53 @@ class Model implements MLv0.Core.IEvaluatable
         this._connectom.weights.setAll(bestWeights[0]);
         this._connectom.biases.setAll(bestBiases[0]);
         localStorage.setItem(this._quickSaveKey, this.saveImp());
+        this._wakeSentinel = undefined;
     }
 
     public async trainClassifier(connectom: MLv0.Net.Connectom): Promise<{ assesment: number, samplesCount: number }>
     {
-        MLv0.Utils.assert(this._dataSets);
-        var sampleCount = 0;
+        MLv0.Utils.assert(this._samples);
         var rightPredicted = 0;
-        for (const content of this._dataSets)
+        for (const sample of this._samples)
         {
-            const step = 1;//MLv0.Utils.toInt((new MLv0.Utils.RandomGenerator).getValue(3, 11));
-            for (var sampleNo = 0; sampleNo < content.length; sampleNo += step)
+            Model.getInputs(connectom).setAll(sample.bitmap);
+            connectom.evaluate();
+            const outputs = Model.getOutputs(connectom);
+
+            const predictedValue = Model.predictedValue(outputs);
+            if (predictedValue == sample.value)
             {
-                const sample = content.getSample(sampleNo);
-                const sensor_scale = this._sensorWidth / content.width;
-                MLv0.Utils.assert(sensor_scale == this._sensorHeight / content.height)
-                const input_image = MLv0.UI.InputImage.scale(
-                    sample.bitmap,
-                    content.width,
-                    content.height,
-                    sensor_scale
-                );
-
-                Model.getInputs(connectom).setAll(input_image.bitmap);
-                const outputs = Model.getOutputs(connectom);
-                connectom.evaluate();
-
-                const predictedValue = Model.predictedValue(outputs);
-                if (predictedValue == sample.value)
-                {
-                    rightPredicted++;
-                }
-                else if (predictedValue === undefined && rightPredicted >= 10)
-                {
-                    rightPredicted -= 10;
-                }
-
-                if (((sampleCount++) % 500) == 0)
-                {
-                    const draw_scale = 1.6;//this._dataScale.value;
-                    const scaled_image = MLv0.UI.InputImage.scale(
-                        sample.bitmap,
-                        content.width,
-                        content.height,
-                        draw_scale
-                    );
-                    const p = document.getElementById('predictedNumber') as HTMLParagraphElement;
-                    if (p)
-                    {
-                        p.textContent = `${sample.value} ${predictedValue == sample.value ? "+" : ""}`;
-                    }
-                    await this.drawOnCanvas(scaled_image);
-                }
-                //this._dataScale.evaluate();
+                rightPredicted++;
             }
+            else if (predictedValue === undefined && rightPredicted >= 10)
+            {
+                rightPredicted -= 10;
+            }
+
+            if (sample.originalImage)
+            {
+                const draw_scale = 1.6;//this._dataScale.value;
+                const scaled_image = MLv0.UI.InputImage.scale(
+                    sample.originalImage.bitmap,
+                    sample.originalImage.width,
+                    sample.originalImage.height,
+                    draw_scale
+                );
+                const p = document.getElementById('predictedNumber') as HTMLParagraphElement;
+                if (p)
+                {
+                    p.textContent = `${sample.value} ${predictedValue == sample.value ? "+" : ""}`;
+                }
+                await this.drawOnCanvas(scaled_image);
+            }
+            //this._dataScale.evaluate();
         }
 
-        const assesment = (rightPredicted * 100) / sampleCount;
-        console.log(`Samples processed: ${sampleCount}, Current assessment: ${assesment}%`);
+
+        const assesment = (rightPredicted * 100) / this._samples.length;
+        console.log(`Samples processed: ${this._samples.length}, Current assessment: ${assesment}%`);
         return {
-            assesment: assesment, samplesCount: sampleCount
+            assesment: assesment, samplesCount: this._samples.length
         };
     }
 
@@ -470,7 +492,8 @@ class Model implements MLv0.Core.IEvaluatable
     private _biasesGeneration?: MLv0.GA.Generation<MLv0.Net.BiasType>;
     private _connectom?: MLv0.Net.Connectom;
     private _population?: MLv0.Net.Population[];
-    private _dataSets?: MLv0.UI.DataSet[];
+    private _samples?: SampleInfo[];
+    //private _dataSets?: MLv0.UI.DataSet[];
     private _wakeSentinel?: WakeLockSentinel;
 }
 
